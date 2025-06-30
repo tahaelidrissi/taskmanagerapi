@@ -22,4 +22,4 @@ async def app_init():
 async def health_check():
     return {"status": "OK"}
 
-app.include_router(task_router)
+app.include_router(task_router, prefix="/api/v1/tasks", tags=["Tasks"])
