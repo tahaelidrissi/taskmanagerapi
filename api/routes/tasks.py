@@ -7,7 +7,8 @@ from ..schemas import TaskCreate,TaskUpdate
 
 router = APIRouter()
 
-@router.get("/")
+import traceback
+
 @router.get("/")
 async def list_tasks():
     try:
@@ -15,7 +16,9 @@ async def list_tasks():
         tasks = await Task.find_all().to_list()
         return tasks
     except Exception as e:
-        print(f"❌ ERROR in GET /tasks: {e}")
+        print("❌ ERROR in GET /tasks:")
+        print("Type:", type(e))
+        traceback.print_exc()  # Affiche la stack complète dans les logs
         raise HTTPException(status_code=500, detail=str(e))
 
 
