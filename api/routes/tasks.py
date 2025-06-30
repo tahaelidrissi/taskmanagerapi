@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from models import Task  
+from ..models import Task  
 from bson import ObjectId
 from fastapi import HTTPException
-from schemas import TaskCreate,TaskUpdate
+from ..schemas import TaskCreate,TaskUpdate
 
 
 router = APIRouter(prefix="/api/v1/tasks", tags=["Tasks"])
