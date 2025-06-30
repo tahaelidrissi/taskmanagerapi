@@ -7,6 +7,8 @@ from api.models import Task  # Assure-toi que c'est bien le bon chemin
 from api.routes.tasks import router as task_router
 
 app = FastAPI()
+from dotenv import load_dotenv
+load_dotenv()  # charge automatiquement les variables du fichier .env
 
 @app.on_event("startup")
 async def init_db():
