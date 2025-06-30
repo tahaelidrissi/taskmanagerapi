@@ -3,6 +3,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from api.models import Task
 import os
+import asyncio
+import nest_asyncio
+
+nest_asyncio.apply()
+
 
 app = FastAPI()
 
