@@ -7,8 +7,6 @@ from api.models import Task  # Assure-toi que c'est bien le bon chemin
 from api.routes.tasks import router as task_router
 
 app = FastAPI()
-from dotenv import load_dotenv
-load_dotenv()  # charge automatiquement les variables du fichier .env
 
 @app.on_event("startup")
 async def init_db():
@@ -18,6 +16,7 @@ async def init_db():
     client = AsyncIOMotorClient(mongo_uri)
     db = client.get_default_database()
     await init_beanie(database=db, document_models=[Task])
+    print("Beanie initialisé")
 
 app.include_router(task_router, prefix="/api/v1/tasks", tags=["Tasks"])
 
