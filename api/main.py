@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 import asyncio
-from database import init_db
-from routes.tasks import router as task_router
+from .database import init_db
+from .routes.tasks import router as task_router
 
 app = FastAPI(title="TaskManagerAPI")
 app.include_router(task_router)
