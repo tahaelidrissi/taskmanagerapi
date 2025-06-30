@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from ..models import Task  
 from ..schemas import TaskCreate, TaskUpdate
+from ..main import init_db_once
 import traceback
 
 from main import init_db_once  # Import de la fonction d'initialisation
