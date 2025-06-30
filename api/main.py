@@ -1,16 +1,29 @@
 from fastapi import FastAPI
-import asyncio
-from .database import init_db
-from .routes.tasks import router as task_router
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+import os
 
-app = FastAPI(title="TaskManagerAPI")
-app.include_router(task_router)
-# Démarrage de l'application
+from api.models import Task  # Assure-toi que Task est bien défini dans models.py
+from api.routes.tasks import router as task_router  # Router des routes
+
+app = FastAPI()
+
 @app.on_event("startup")
-async def on_startup():
-    await init_db()
+async def app_init():
+    """
+    Initialiser la base de données Beanie avec MongoDB
+    """
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        raise RuntimeError("MONGO_URI n'est pas défini dans les variables d'environnement")
 
-# Endpoint simple de vérification
+    client = AsyncIOMotorClient(mongo_uri)
+    db = client.get_default_database()
+    await init_beanie(database=db, document_models=[Task])
 @app.get("/health")
 async def health_check():
     return {"status": "OK"}
+# Inclure les routes
+app.include_router(task_router, prefix="/api/v1/tasks", tags=["Tasks"])
+
+
