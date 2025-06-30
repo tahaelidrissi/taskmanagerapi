@@ -5,7 +5,6 @@ from ..schemas import TaskCreate, TaskUpdate
 from ..main import init_db_once
 import traceback
 
-from main import init_db_once  # Import de la fonction d'initialisation
 
 router = APIRouter()
 
