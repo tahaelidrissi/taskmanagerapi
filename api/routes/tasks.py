@@ -8,9 +8,16 @@ from ..schemas import TaskCreate,TaskUpdate
 router = APIRouter()
 
 @router.get("/")
+@router.get("/")
 async def list_tasks():
-    tasks = await Task.find_all().to_list()
-    return tasks
+    try:
+        print("📥 Handling GET /api/v1/tasks/")
+        tasks = await Task.find_all().to_list()
+        return tasks
+    except Exception as e:
+        print(f"❌ ERROR in GET /tasks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/{id}")
 async def get_task(id: str):
