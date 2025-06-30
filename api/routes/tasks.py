@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from ..schemas import TaskCreate,TaskUpdate
 
 
-router = APIRouter(prefix="/api/v1/tasks", tags=["Tasks"])
+router = APIRouter()
 
 @router.get("/")
 async def list_tasks():
