@@ -1,19 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from ..models import Task  
 from ..schemas import TaskCreate, TaskUpdate
 from ..main import init_db_once
 import traceback
 
-
 router = APIRouter()
 
-# Option dépendance FastAPI pour init DB (plus propre)
-async def ensure_db_initialized():
-    await init_db_once()
-
-@router.get("/", dependencies=[Depends(ensure_db_initialized)])
+@router.get("/")
 async def list_tasks():
+    await init_db_once()
     try:
         print("📥 Handling GET /api/v1/tasks/")
         tasks = await Task.find_all().to_list()
@@ -24,21 +20,24 @@ async def list_tasks():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{id}", dependencies=[Depends(ensure_db_initialized)])
+@router.get("/{id}")
 async def get_task(id: str):
+    await init_db_once()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
-@router.post("/", dependencies=[Depends(ensure_db_initialized)])
+@router.post("/")
 async def add_task(task_data: TaskCreate):
+    await init_db_once()
     task = Task(**task_data.dict())
     await task.create()
     return task
 
-@router.put("/{id}", dependencies=[Depends(ensure_db_initialized)])
+@router.put("/{id}")
 async def update_task(id: str, task_update: TaskUpdate):
+    await init_db_once()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -47,25 +46,26 @@ async def update_task(id: str, task_update: TaskUpdate):
     task.priority = task_update.priority
     task.due_date = task_update.due_date
     task.completed = task_update.completed
-
     await task.save()
     return task
 
-@router.delete("/{id}", dependencies=[Depends(ensure_db_initialized)])
+@router.delete("/{id}")
 async def delete_task(id: str):
+    await init_db_once()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     await task.delete()
     return {"message": "Task deleted successfully"}
 
-@router.patch("/{id}", dependencies=[Depends(ensure_db_initialized)])
+@router.patch("/{id}")
 async def update_partial_task(id: str, task_update: TaskUpdate):
+    await init_db_once()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    update_data = task_update.dict(exclude_unset=True)  # garde seulement les champs envoyés
+    update_data = task_update.dict(exclude_unset=True)
     for field, value in update_data.items():
-        setattr(task, field, value)  # met à jour dynamiquement les champs
+        setattr(task, field, value)
     await task.save()
     return task
