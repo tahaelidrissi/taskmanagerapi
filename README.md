@@ -116,18 +116,18 @@ Designed to demonstrate modern Python backend development, async database integr
 Add screenshots of successful API calls here, corresponding to these routes:
 
 - **GET /health** — show the health check response 
- ![Shows the API health status to confirm the server is running and reachable.](GETHEALTH.png)
+ ![Shows the API health status to confirm the server is running and reachable.](images/GETHEALTH.png)
 - **GET /api/v1/tasks** — list all tasks  
- ![Displays the list of all tasks currently stored in the database, showing fields like title, description, priority, due date, and completion status.](GETALLTASKS.png)
+ ![Displays the list of all tasks currently stored in the database, showing fields like title, description, priority, due date, and completion status.](images/GETALLTASKS.png)
 - **POST /api/v1/tasks** — create a new task (show request body and response) 
- ![Demonstrates creating a new task by sending a JSON payload with all required fields, and the server’s response including the created task’s details and generated ID.](POST.png) 
+ ![Demonstrates creating a new task by sending a JSON payload with all required fields, and the server’s response including the created task’s details and generated ID.](images/POST.png) 
 - **GET /api/v1/tasks/{id}** — get a specific task by ID  
- ![ Retrieves the details of a single task identified by its unique ID, showing all task attributes.](GETID.png)
+ ![ Retrieves the details of a single task identified by its unique ID, showing all task attributes.](images/GETID.png)
 - **PUT /api/v1/tasks/{id}** — update entire task (show request and updated response)
- ![Updates an entire task’s data by replacing all fields with new values; screenshot shows the full updated task data sent and the server’s updated response.](PUT.png)  
+ ![Updates an entire task’s data by replacing all fields with new values; screenshot shows the full updated task data sent and the server’s updated response.](images/PUT.png)  
 - **PATCH /api/v1/tasks/{id}** — partial update of task (show request with partial fields and response)
- ![Partially updates one or more fields of an existing task; screenshot includes the partial JSON sent and the updated task response from the server.](PATCH.png)  
+ ![Partially updates one or more fields of an existing task; screenshot includes the partial JSON sent and the updated task response from the server.](images/PATCH.png)  
 - **DELETE /api/v1/tasks/{id}** — delete a task (show confirmation message)
- ![Deletes a specific task by its ID; screenshot shows the confirmation message returned after successful deletion.](DELETE.png)
+ ![Deletes a specific task by its ID; screenshot shows the confirmation message returned after successful deletion.](images/DELETE.png)
 
 ---
