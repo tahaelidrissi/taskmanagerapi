@@ -1,28 +1,25 @@
 from fastapi import APIRouter, HTTPException
 from bson import ObjectId
-from ..models import Task  
+from ..models import Task
 from ..schemas import TaskCreate, TaskUpdate
-from ..main import init_db_once
+from ..database import get_database
 import traceback
 
 router = APIRouter()
 
 @router.get("/")
 async def list_tasks():
-    await init_db_once()
+    await get_database()
     try:
-        print("📥 Handling GET /api/v1/tasks/")
         tasks = await Task.find_all().to_list()
         return tasks
     except Exception as e:
-        print("❌ ERROR in GET /tasks:")
-        print("Type:", type(e))
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{id}")
 async def get_task(id: str):
-    await init_db_once()
+    await get_database()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -30,14 +27,14 @@ async def get_task(id: str):
 
 @router.post("/")
 async def add_task(task_data: TaskCreate):
-    await init_db_once()
+    await get_database()
     task = Task(**task_data.dict())
     await task.create()
     return task
 
 @router.put("/{id}")
 async def update_task(id: str, task_update: TaskUpdate):
-    await init_db_once()
+    await get_database()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -51,7 +48,7 @@ async def update_task(id: str, task_update: TaskUpdate):
 
 @router.delete("/{id}")
 async def delete_task(id: str):
-    await init_db_once()
+    await get_database()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -60,7 +57,7 @@ async def delete_task(id: str):
 
 @router.patch("/{id}")
 async def update_partial_task(id: str, task_update: TaskUpdate):
-    await init_db_once()
+    await get_database()
     task = await Task.find_one(Task.id == ObjectId(id))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
