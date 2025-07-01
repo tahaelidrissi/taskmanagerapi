@@ -19,6 +19,10 @@ Designed to demonstrate modern Python backend development, async database integr
 
 ## Getting Started
 
+**Live API URL:** [https://taskmanagerapi-sage.vercel.app/](https://taskmanagerapi-sage.vercel.app/)
+
+...
+
 ### Prerequisites
 
 - Python 3.8+  
