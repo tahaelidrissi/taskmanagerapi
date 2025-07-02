@@ -6,6 +6,9 @@ from beanie import init_beanie
 from api.models import Task
 
 nest_asyncio.apply()
+from dotenv import load_dotenv
+load_dotenv()
+
 
 _client = None
 _db = None
