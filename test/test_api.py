@@ -1,9 +1,9 @@
 import pytest
 import httpx
 import pytest_asyncio
+import os
 
-
-BASE_URL = "https://taskmanagerapi-sage.vercel.app"
+BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000") 
 
 @pytest.mark.asyncio
 async def test_health():
@@ -26,6 +26,12 @@ async def created_task_id():
         assert r.status_code in (200, 201)
         task = r.json()
         yield task["_id"]
+        assert task["title"] == "Test Task"
+        assert task["description"] == "This is a test"
+        assert task["priority"] == 1
+        assert task["due_date"] == "2025-12-31T23:59:59"
+        assert task["completed"] == False
+
 
 @pytest.mark.asyncio
 async def test_get_all_tasks():
@@ -86,3 +92,29 @@ async def test_delete_task(created_task_id):
         assert r.status_code in (200, 204)
         r = await client.get(f"{BASE_URL}/api/v1/tasks/{created_task_id}")
         assert r.status_code == 404
+
+@pytest.mark.asyncio
+async def test_get_task_not_found():
+    fake_id = "000000000000000000000000"  
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.get(f"{BASE_URL}/api/v1/tasks/{fake_id}")
+        assert r.status_code == 404
+
+@pytest.mark.asyncio
+async def test_delete_task_not_found():
+    fake_id = "000000000000000000000000"
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.delete(f"{BASE_URL}/api/v1/tasks/{fake_id}")
+        assert r.status_code == 404
+
+@pytest.mark.asyncio
+async def test_create_task_invalid_data():
+    invalid_task = {
+        "title": "",
+        "description": "Invalid task",
+        "priority": -1,
+        "due_date": "invalid-date-format"
+    }
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        r = await client.post(f"{BASE_URL}/api/v1/tasks", json=invalid_task)
+        assert r.status_code == 422 
