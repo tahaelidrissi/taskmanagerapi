@@ -143,8 +143,10 @@ docker build -t mon_app .
 
 2. **Run the Docker container with port mapping:**
 
+Before running the Docker container, you need to create a `.env` file in the project root directory containing the required environment variables.
+
 ```bash
-docker run --rm -p 8000:8000 mon_app
+docker run --rm -p 8000:8000 --env-file .env mon_app
 ```
 
 - The `-p 8000:8000` option maps port **8000** of your local machine to port **8000** inside the container.
