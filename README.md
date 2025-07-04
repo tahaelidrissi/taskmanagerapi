@@ -131,3 +131,28 @@ Add screenshots of successful API calls here, corresponding to these routes:
  ![Deletes a specific task by its ID; screenshot shows the confirmation message returned after successful deletion.](images/DELETE.png)
 
 ---
+## Running the Application with Docker
+
+To run the application inside a Docker container and access it locally, follow these steps:
+
+1. **Build the Docker image** (if you haven't already):
+
+```bash
+docker build -t mon_app .
+```
+
+2. **Run the Docker container with port mapping:**
+
+Before running the Docker container, you need to create a `.env` file in the project root directory containing the required environment variables.
+
+```bash
+docker run --rm -p 8000:8000 --env-file .env mon_app
+```
+
+- The `-p 8000:8000` option maps port **8000** of your local machine to port **8000** inside the container.
+- You can then access the API at: [http://localhost:8000](http://localhost:8000)
+
+3. **Stop the container**  
+Press `Ctrl + C` in the terminal running the container to stop it.
+
+---
