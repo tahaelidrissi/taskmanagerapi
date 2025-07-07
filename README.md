@@ -156,3 +156,13 @@ docker run --rm -p 8000:8000 --env-file .env mon_app
 Press `Ctrl + C` in the terminal running the container to stop it.
 
 ---
+## 🐳 Run with Docker Compose
+
+Make sure Docker and Docker Compose are installed on your machine.
+
+To start the application:
+
+```bash
+docker-compose up --build
+
+The API will be available at [http://localhost:8000](http://localhost:8000)
