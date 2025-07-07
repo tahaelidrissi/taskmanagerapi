@@ -160,9 +160,13 @@ Press `Ctrl + C` in the terminal running the container to stop it.
 
 Make sure Docker and Docker Compose are installed on your machine.
 
+To install Docker and Docker Compose, follow this link:  
+[https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
+
 To start the application:
 
 ```bash
 docker-compose up --build
+```
 
 The API will be available at [http://localhost:8000](http://localhost:8000)
