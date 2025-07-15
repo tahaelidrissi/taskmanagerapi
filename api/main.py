@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from api.routes.tasks import router as task_router
 from api.database import get_database
+from mangum import Mangum
 
 app = FastAPI()
 
