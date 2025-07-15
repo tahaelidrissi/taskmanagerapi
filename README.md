@@ -138,7 +138,7 @@ To run the application inside a Docker container and access it locally, follow t
 1. **Build the Docker image** (if you haven't already):
 
 ```bash
-docker build -t mon_app .
+docker build -t taskapimanager .
 ```
 
 2. **Run the Docker container with port mapping:**
@@ -146,7 +146,7 @@ docker build -t mon_app .
 Before running the Docker container, you need to create a `.env` file in the project root directory containing the required environment variables.
 
 ```bash
-docker run --rm -p 8000:8000 --env-file .env mon_app
+docker run --rm -p 8000:8000 --env-file .env taskapimanager
 ```
 
 - The `-p 8000:8000` option maps port **8000** of your local machine to port **8000** inside the container.
