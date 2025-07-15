@@ -1,4 +1,4 @@
-name: Build & Push Docker Image
+name: Build, Push & Deploy to Docker Swarm (PWD)
 
 on:
   push:
@@ -8,19 +8,38 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Log in to DockerHub
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest .
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:${{ github.sha }} .
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
 
       - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+
+  deploy:
+    name: Deploy to PWD Swarm
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH to PWD
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PWD_IP }}
+          username: root
+          key: ${{ secrets.PWD_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+            docker stack deploy -c /root/stack.yml --with-registry-auth taskmanager
