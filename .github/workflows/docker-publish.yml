@@ -3,7 +3,7 @@ name: Build, Push & Deploy to Docker Swarm (PWD)
 on:
   push:
     branches:
-      - main
+      - docker-swarm-deploy
 
 jobs:
   build-and-push:
