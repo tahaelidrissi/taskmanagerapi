@@ -41,5 +41,7 @@ jobs:
           username: root
           key: ${{ secrets.PWD_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+            docker pull $DOCKERHUB_USERNAME/taskmanagerapi:latest
             docker stack deploy -c /root/stack.yml --with-registry-auth taskmanager
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
