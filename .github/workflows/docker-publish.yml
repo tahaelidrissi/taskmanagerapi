@@ -1,4 +1,4 @@
-name: Build and Deploy via SSH
+name: Build and Deploy via SSH (Manual Upload)
 on:
   push:
     branches:
@@ -29,6 +29,45 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PWD_SSH_KEY }}
       
-      - name: Deploy to PWD (single command)
+      - name: Test SSH connection
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "rm -rf taskmanagerapi && curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip && unzip -q repo.zip && mv taskmanagerapi-docker-swarm-deploy taskmanagerapi && cd taskmanagerapi && export MONGO_URI='${{ secrets.MONGO_URI }}' && echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin && docker pull '${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest' && docker stack deploy -c stack.yml --with-registry-auth taskmanager && echo 'Deployment completed!' && docker stack ls"
+          echo "Testing connection to PWD..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "✅ SSH connection successful!"; whoami; docker --version'
+      
+      - name: Copy stack.yml to PWD
+        run: |
+          echo "Copying stack.yml to PWD instance..."
+          scp -o StrictHostKeyChecking=no -o ConnectTimeout=15 stack.yml ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com:~/
+          echo "✅ stack.yml copied successfully!"
+      
+      - name: Deploy Docker Stack
+        run: |
+          echo "Starting deployment..."
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "
+          echo 'Verifying stack.yml file...'
+          ls -la stack.yml
+          cat stack.yml
+          echo 'Setting up environment...'
+          export MONGO_URI='${{ secrets.MONGO_URI }}'
+          echo 'Logging into Docker Hub...'
+          echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin
+          echo 'Pulling latest Docker image...'
+          docker pull '${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest'
+          echo 'Deploying Docker stack...'
+          docker stack deploy -c stack.yml --with-registry-auth taskmanager
+          echo '✅ Deployment completed!'
+          echo 'Stack status:'
+          docker stack ls
+          echo 'Service status:'
+          docker service ls
+          "
+      
+      - name: Verify Deployment
+        run: |
+          echo "Verifying deployment status..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "
+          echo 'Final deployment status:'
+          docker stack ps taskmanager
+          echo 'Container logs (last 20 lines):'
+          docker service logs --tail 20 taskmanager_web || echo 'No logs available yet'
+          "
