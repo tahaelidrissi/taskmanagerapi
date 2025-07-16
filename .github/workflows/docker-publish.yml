@@ -43,9 +43,33 @@ jobs:
             rm -rf taskmanagerapi
             
             echo "Cloning repository..."
-            git clone https://github.com/${{ github.repository }}.git 
+            echo "Repository URL: https://github.com/${{ github.repository }}.git"
             
-            if [ $? -eq 0 ]; then
+            # Test if we can reach GitHub
+            echo "Testing connection to GitHub..."
+            ping -c 3 github.com || echo "Cannot ping GitHub"
+            
+            # Try to clone with verbose output
+            echo "Attempting to clone repository..."
+            git clone -v https://github.com/${{ github.repository }}.git taskmanagerapi 2>&1 || {
+              echo "❌ Git clone failed with error code: $?"
+              echo "Let's try with different approaches..."
+              
+              # Try without .git extension
+              echo "Trying without .git extension..."
+              git clone -v https://github.com/${{ github.repository }} taskmanagerapi 2>&1 || {
+                echo "❌ That also failed"
+                
+                # Check if curl can reach the repository
+                echo "Testing if repository exists with curl..."
+                curl -I https://github.com/${{ github.repository }} || echo "Repository not reachable"
+                
+                echo "❌ All clone attempts failed"
+                exit 1
+              }
+            }
+            
+            if [ -d "taskmanagerapi" ]; then
               echo "✅ Repository cloned successfully!"
               cd taskmanagerapi
               echo "Changed to directory: $(pwd)"
@@ -79,7 +103,7 @@ jobs:
               fi
               
             else
-              echo "❌ Failed to clone repository"
+              echo "❌ Repository directory not created"
               exit 1
             fi
             
@@ -98,4 +122,4 @@ jobs:
             echo "Deploying stack..."
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
-            echo "✅ Deployment completed successfully!"
+            echo "✅ Deployment completed successfully!"
