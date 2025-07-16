@@ -42,6 +42,8 @@ jobs:
             fi
             cd taskmanagerapi
             git pull origin docker-swarm-deploy
-            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}"/$IMAGE_NAME:latest
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
+
+
