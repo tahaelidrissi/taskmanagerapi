@@ -35,7 +35,6 @@ jobs:
           timeout: 60s
           command_timeout: 10m
           script: |
-            set -e
             echo "🔧 Pulling code and deploying stack..."
             echo "Current directory: $(pwd)"
             echo "Available space: $(df -h . | tail -1)"
@@ -47,6 +46,11 @@ jobs:
             echo "Removing existing directory and cloning fresh..."
             rm -rf taskmanagerapi
             git clone -b docker-swarm-deploy https://github.com/${{ github.repository }}.git taskmanagerapi
+            
+            # THIS IS THE MISSING LINE - CHANGE TO THE PROJECT DIRECTORY
+            cd taskmanagerapi
+            echo "Changed to directory: $(pwd)"
+            echo "Contents: $(ls -la)"
             
             echo "✅ Git operations completed!"
             
@@ -63,5 +67,4 @@ jobs:
             echo "Deploying stack..."
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
-            echo "✅ Deployment completed successfully!"
-            exit 0
+            echo "✅ Deployment completed successfully!"
