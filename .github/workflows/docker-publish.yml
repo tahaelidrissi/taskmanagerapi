@@ -26,17 +26,6 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Transfer files to PWD via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          source: "stack.yml"
-          target: "/root/"
-          timeout: 30s
-      
       - name: Deploy to Docker Swarm
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -50,14 +39,23 @@ jobs:
             set -euo pipefail
             echo "🔧 Starting Docker Swarm deployment..."
             
-            # Verify files transferred
-            if [ ! -f "stack.yml" ]; then
-              echo "❌ stack.yml not found!"
-              ls -la
-              exit 1
-            fi
+            # Create stack.yml inline (avoiding file transfer issues)
+            cat > stack.yml << 'EOF'
+            version: "3.8"
+            services:
+              web:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+                ports:
+                  - "80:8000"
+                environment:
+                  - MONGO_URI=${MONGO_URI}
+                deploy:
+                  replicas: 1
+                  restart_policy:
+                    condition: on-failure
+            EOF
             
-            echo "✅ stack.yml found!"
+            echo "✅ stack.yml created successfully!"
             echo "Stack configuration:"
             cat stack.yml
             
@@ -116,5 +114,10 @@ jobs:
             echo ""
             echo "Service status:"
             docker stack ps taskmanager
+            
+            # Show service logs if available
+            echo ""
+            echo "Recent service logs:"
+            docker service logs --tail 10 taskmanager_web || echo "No logs available yet"
             
             echo "✅ Deployment completed successfully!"
