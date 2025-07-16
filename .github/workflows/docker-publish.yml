@@ -29,33 +29,31 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PWD_SSH_KEY }}
       
+      - name: Test SSH connection first
+        run: |
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "Connection test successful!"; whoami; docker --version'
+      
       - name: Deploy to PWD
         run: |
           ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << 'EOF'
-          set -e
           echo "🔧 Starting deployment..."
           
-          # Clean and download
+          # Simple download and deploy
           rm -rf taskmanagerapi
           curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip
           unzip -q repo.zip
           mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
-          rm -f repo.zip
-          
-          # Enter directory and verify
           cd taskmanagerapi
-          if [ ! -f "stack.yml" ]; then
-            echo "❌ stack.yml not found!"
-            exit 1
-          fi
-          echo "✅ stack.yml found!"
           
-          # Set environment and deploy
+          # Quick verification
+          ls -la
+          cat stack.yml
+          
+          # Deploy
           export MONGO_URI="${{ secrets.MONGO_URI }}"
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          docker pull "${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest"
           docker stack deploy -c stack.yml --with-registry-auth taskmanager
           
           echo "✅ Deployment completed!"
-          docker stack ls
           EOF
