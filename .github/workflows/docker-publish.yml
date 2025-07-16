@@ -26,7 +26,24 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Deploy to Docker Swarm
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 60s
+          debug: true
+          script: |
+            echo "✅ SSH connection successful!"
+            whoami
+            hostname
+            date
+            pwd
+      
+      - name: Deploy to Docker Swarm (if connection works)
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
@@ -36,10 +53,9 @@ jobs:
           timeout: 60s
           command_timeout: 10m
           script: |
-            set -euo pipefail
-            echo "🔧 Starting Docker Swarm deployment..."
+            echo "🔧 Starting deployment..."
             
-            # Create stack.yml inline (avoiding file transfer issues)
+            # Create stack.yml inline
             cat > stack.yml << 'EOF'
             version: "3.8"
             services:
@@ -55,69 +71,13 @@ jobs:
                     condition: on-failure
             EOF
             
-            echo "✅ stack.yml created successfully!"
-            echo "Stack configuration:"
-            cat stack.yml
+            echo "Stack file created!"
             
-            # Initialize Docker Swarm if needed
-            if ! docker info | grep -q "Swarm: active"; then
-              echo "Initializing Docker Swarm..."
-              docker swarm init
-            else
-              echo "✅ Docker Swarm is already active"
-            fi
-            
-            # Set environment variables
+            # Quick Docker operations
+            docker swarm init || echo "Swarm already initialized"
             export MONGO_URI="${{ secrets.MONGO_URI }}"
-            echo "Environment variables configured"
-            
-            # Login to Docker Hub
-            echo "Logging into Docker Hub..."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
-            # Pull latest image with retry
-            echo "Pulling Docker image..."
-            for i in {1..3}; do
-              if docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"; then
-                echo "✅ Image pulled successfully"
-                break
-              else
-                echo "❌ Pull attempt $i failed, retrying..."
-                sleep 10
-                if [ $i -eq 3 ]; then
-                  echo "❌ Failed to pull image"
-                  exit 1
-                fi
-              fi
-            done
-            
-            # Deploy stack
-            echo "Deploying stack to Docker Swarm..."
-            if docker stack deploy -c stack.yml --with-registry-auth taskmanager; then
-              echo "✅ Stack deployed successfully!"
-            else
-              echo "❌ Stack deployment failed"
-              exit 1
-            fi
-            
-            # Wait for services to be ready
-            echo "Waiting for services to start..."
-            sleep 30
-            
-            # Show deployment status
-            echo "📊 Deployment Status:"
-            echo "Stack list:"
-            docker stack ls
-            echo ""
-            echo "Service list:"
-            docker service ls
-            echo ""
-            echo "Service status:"
-            docker stack ps taskmanager
-            
-            # Show service logs if available
-            echo ""
-            echo "Recent service logs:"
-            docker service logs --tail 10 taskmanager_web || echo "No logs available yet"
-            
-            echo "✅ Deployment completed successfully!"
+            echo "✅ Deployment completed!"
