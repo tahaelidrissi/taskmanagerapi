@@ -43,7 +43,7 @@ jobs:
             rm -rf taskmanagerapi
             
             echo "Cloning repository..."
-            git clone https://github.com/${{ github.repository }}.git taskmanagerapi
+            git clone https://github.com/${{ github.repository }}.git 
             
             if [ $? -eq 0 ]; then
               echo "✅ Repository cloned successfully!"
