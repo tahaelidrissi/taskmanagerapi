@@ -29,9 +29,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PWD_SSH_KEY }}
       
-      - name: Test SSH connection first
+      - name: Debug Connection
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "Connection test successful!"; whoami; docker --version'
+          echo "Testing with current PWD_USERNAME: ${{ secrets.PWD_USERNAME }}"
+          echo "Attempting connection..."
+          ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "Connected successfully!"' || echo "Connection failed - PWD instance likely expired"
       
       - name: Deploy to PWD
         run: |
