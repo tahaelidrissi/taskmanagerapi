@@ -44,6 +44,7 @@ jobs:
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           script: |
+            echo "Image: ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
             git clone https://github.com/tahaelidrissi/taskmanagerapi.git
             cd taskmanagerapi
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
