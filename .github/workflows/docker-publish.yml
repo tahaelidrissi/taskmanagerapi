@@ -1,49 +1,43 @@
 name: Build and Deploy via SSH
-
 on:
   push:
     branches:
       - docker-swarm-deploy
-
 env:
   IMAGE_NAME: taskmanagerapi
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+      
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+      
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
-
+      
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
-
+      
       - name: Deploy to PWD using SSH
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.PWD_IP }}
-          username: root
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           script: |
-            echo "Pulling code and deploying stack..."
+            echo "🔧 Pulling code and deploying stack..."
             if [ ! -d "taskmanagerapi" ]; then
-              git clone https://github.com/${{ github.repository }}.git
+              git clone https://github.com/${{ github.repository }}.git taskmanagerapi
             fi
             cd taskmanagerapi
             git pull origin docker-swarm-deploy
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}"/$IMAGE_NAME:latest
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
-
-
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
