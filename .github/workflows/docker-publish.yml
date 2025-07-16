@@ -32,9 +32,10 @@ jobs:
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
-          timeout: 60s
-          command_timeout: 10m
+          timeout: 120s
+          command_timeout: 15m
           script: |
+            set -e
             echo "🔧 Pulling code and deploying stack..."
             echo "Current directory: $(pwd)"
             echo "Available space: $(df -h . | tail -1)"
@@ -42,32 +43,36 @@ jobs:
             # Check if git is available
             echo "Git version: $(git --version)"
             
-            if [ ! -d "taskmanagerapi" ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git taskmanagerapi
-            else
-              echo "Repository already exists, updating..."
-            fi
+            # Clean approach - remove existing directory and clone fresh
+            echo "Removing existing directory and cloning fresh..."
+            rm -rf taskmanagerapi
             
+            echo "Cloning repository with timeout..."
+            timeout 60 git clone https://github.com/${{ github.repository }}.git taskmanagerapi || {
+              echo "Git clone failed, trying with different approach..."
+              timeout 60 git clone --depth 1 https://github.com/${{ github.repository }}.git taskmanagerapi
+            }
+            
+            echo "Repository cloned successfully!"
             cd taskmanagerapi
             echo "Current directory after cd: $(pwd)"
             echo "Contents of directory: $(ls -la)"
             
-            # Check git status
-            echo "Git status:"
-            git status
+            echo "Checking out docker-swarm-deploy branch..."
+            git fetch origin docker-swarm-deploy
+            git checkout docker-swarm-deploy
             
-            # Check git remote
-            echo "Git remote:"
-            git remote -v
-            
-            echo "Pulling latest changes..."
-            git fetch origin
-            git checkout docker-swarm-deploy || git checkout -b docker-swarm-deploy origin/docker-swarm-deploy
-            git pull origin docker-swarm-deploy || {
-              echo "Git pull failed, trying to reset..."
-              git reset --hard origin/docker-swarm-deploy
-            }
+            echo "Verifying stack.yml exists..."
+            if [ -f "stack.yml" ]; then
+              echo "✅ stack.yml found!"
+              echo "Contents of stack.yml:"
+              cat stack.yml
+            else
+              echo "❌ stack.yml not found!"
+              echo "Available files:"
+              ls -la
+              exit 1
+            fi
             
             echo "✅ Git operations completed!"
             
