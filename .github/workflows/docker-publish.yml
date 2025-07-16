@@ -30,7 +30,7 @@ jobs:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
-          port: 8022
+          port: 22
           debug: true
           timeout: 60s
           command_timeout: 10m
