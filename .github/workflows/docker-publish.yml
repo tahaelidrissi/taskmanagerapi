@@ -18,7 +18,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build and tag Docker image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:${{ github.sha }} .
           docker tag ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
@@ -32,16 +32,15 @@ jobs:
     name: Deploy to PWD Swarm
     needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy via SSH to PWD
+      - name: Connect and deploy to PWD
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.PWD_IP }}
+          host: ${{ secrets.PWD_HOST }}
           username: root
           key: ${{ secrets.PWD_SSH_KEY }}
           script: |
-            docker pull $DOCKERHUB_USERNAME/taskmanagerapi:latest
-            docker stack deploy -c /root/taskmanagerapi/stack.yml --with-registry-auth taskmanager
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+            git clone https://github.com/${{ github.repository }}.git
+            cd $(basename ${{ github.repository }})
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
