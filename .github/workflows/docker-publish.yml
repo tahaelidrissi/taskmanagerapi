@@ -36,19 +36,64 @@ jobs:
           command_timeout: 10m
           script: |
             set -e
-            echo "🔧 Starting deployment..."
+            echo "🔧 Pulling code and deploying stack..."
+            echo "Current directory: $(pwd)"
+            echo "Available space: $(df -h . | tail -1)"
             
-            # Simple clone without timeout
+            # Connection test
+            echo "Testing connection..."
+            date
+            
+            # Clean approach - remove existing directory and download fresh
+            echo "Removing existing directory and downloading fresh..."
             rm -rf taskmanagerapi
-            git clone -b docker-swarm-deploy https://github.com/${{ github.repository }}.git taskmanagerapi
             
+            echo "Downloading repository archive..."
+            curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip
+            echo "Extracting repository..."
+            unzip -q repo.zip
+            
+            echo "Renaming extracted directory..."
+            mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
+            
+            echo "Cleanup zip file..."
+            rm repo.zip
+            
+            echo "Repository downloaded successfully!"
+            echo "Checking if directory exists..."
+            ls -la | grep taskmanagerapi
+            
+            echo "Entering repository directory..."
             cd taskmanagerapi
-            echo "✅ Repository ready!"
+            echo "Current directory after cd: $(pwd)"
+            echo "Contents of directory: $(ls -la)"
             
-            # Continue with deployment...
+            echo "Verifying stack.yml exists..."
+            if [ -f "stack.yml" ]; then
+              echo "✅ stack.yml found!"
+              echo "Contents of stack.yml:"
+              cat stack.yml
+            else
+              echo "❌ stack.yml not found!"
+              echo "Available files:"
+              ls -la
+              exit 1
+            fi
+            
+            echo "✅ Repository setup completed!"
+            
+            # Set environment variables for Docker stack
             export MONGO_URI="${{ secrets.MONGO_URI }}"
+            echo "Environment variables set for deployment"
+            
+            echo "Logging into Docker Hub..."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            
+            echo "Pulling Docker image..."
             docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            
+            echo "Deploying stack..."
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
-            echo "✅ Deployment completed!"
+            echo "✅ Deployment completed successfully!"
+            exit 0
