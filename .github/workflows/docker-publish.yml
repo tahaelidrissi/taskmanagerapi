@@ -40,7 +40,7 @@ jobs:
             unzip -q repo.zip
             mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
             rm repo.zip
-            echo "✅ Code downloaded successfully!"
+            echo "Code downloaded successfully!"
       
       - name: Verify and deploy stack
         uses: appleboy/ssh-action@v0.1.10
