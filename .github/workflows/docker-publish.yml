@@ -24,76 +24,32 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Download code to PWD (may timeout but works)
-        uses: appleboy/ssh-action@v0.1.10
-        continue-on-error: true
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 60s
-          script: |
-            echo "🔧 Downloading code..."
-            rm -rf taskmanagerapi
-            curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip && unzip -q repo.zip && mv taskmanagerapi-docker-swarm-deploy taskmanagerapi && rm -f repo.zip
-            echo "✅ Download completed!"
+      - name: Setup SSH for Docker Context
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PWD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan direct.labs.play-with-docker.com >> ~/.ssh/known_hosts
       
-      - name: Verify and deploy stack
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 5m
-          script: |
-            echo "🔧 Starting deployment..."
-            
-            # Check if files exist (they should, even if previous step "failed")
-            if [ ! -d "taskmanagerapi" ]; then
-              echo "Directory not found, trying download again..."
-              curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip
-              unzip -q repo.zip
-              mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
-              rm -f repo.zip
-            fi
-            
-            cd taskmanagerapi
-            echo "Current directory: $(pwd)"
-            echo "Files available:"
-            ls -la
-            
-            if [ -f "stack.yml" ]; then
-              echo "✅ stack.yml found!"
-              echo "Stack configuration:"
-              cat stack.yml
-            else
-              echo "❌ stack.yml not found!"
-              exit 1
-            fi
-            
-            # Set environment variables
-            export MONGO_URI="${{ secrets.MONGO_URI }}"
-            echo "Environment variables set"
-            
-            # Login to Docker Hub
-            echo "Logging into Docker Hub..."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            
-            # Pull image
-            echo "Pulling Docker image..."
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
-            
-            # Deploy stack
-            echo "Deploying stack..."
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
-            
-            echo "✅ Deployment completed successfully!"
-            
-            # Show stack status
-            echo "Stack status:"
-            docker stack ls
-            docker service ls
+      - name: Create Docker Context and Deploy
+        run: |
+          # Create docker context pointing to PWD
+          docker context create pwd --docker "host=ssh://${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com"
+          
+          # Use the context
+          docker context use pwd
+          
+          # Test connection
+          docker info
+          
+          # Login to Docker Hub on remote
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          
+          # Deploy using local stack.yml
+          docker stack deploy -c stack.yml --with-registry-auth taskmanager
+          
+          # Show results
+          docker stack ls
+          docker service ls
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
