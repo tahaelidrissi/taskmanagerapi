@@ -26,58 +26,54 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Test SSH Connection
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          timeout: 30s
-          command_timeout: 60s
-          debug: true
-          script: |
-            echo "✅ SSH connection successful!"
-            whoami
-            hostname
-            date
-            pwd
-      
-      - name: Deploy to Docker Swarm (if connection works)
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 10m
-          script: |
-            echo "🔧 Starting deployment..."
+      - name: Deploy to PWD using SSH Deploy
+        uses: easingthemes/ssh-deploy@v2.1.5
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PWD_SSH_KEY }}
+          REMOTE_HOST: direct.labs.play-with-docker.com
+          REMOTE_USER: ${{ secrets.PWD_USERNAME }}
+          SOURCE: "stack.yml"
+          TARGET: "/root/"
+          SCRIPT_AFTER: |
+            echo "✅ Files cloned successfully!"
+            echo "Current directory: $(pwd)"
+            echo "Files available:"
+            ls -la
             
-            # Create stack.yml inline
-            cat > stack.yml << 'EOF'
-            version: "3.8"
-            services:
-              web:
-                image: ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
-                ports:
-                  - "80:8000"
-                environment:
-                  - MONGO_URI=${MONGO_URI}
-                deploy:
-                  replicas: 1
-                  restart_policy:
-                    condition: on-failure
-            EOF
+            echo "🔧 Starting Docker Swarm deployment..."
             
-            echo "Stack file created!"
+            # Verify stack.yml exists
+            if [ -f "stack.yml" ]; then
+              echo "✅ stack.yml found!"
+              echo "Stack configuration:"
+              cat stack.yml
+            else
+              echo "❌ stack.yml not found!"
+              exit 1
+            fi
             
-            # Quick Docker operations
-            docker swarm init || echo "Swarm already initialized"
+            # Initialize Docker Swarm
+            docker swarm init || echo "✅ Docker Swarm already active"
+            
+            # Set environment variables
             export MONGO_URI="${{ secrets.MONGO_URI }}"
+            echo "Environment variables set"
+            
+            # Login to Docker Hub
+            echo "Logging into Docker Hub..."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            
+            # Pull image
+            echo "Pulling Docker image..."
             docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            
+            # Deploy stack
+            echo "Deploying stack..."
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
-            echo "✅ Deployment completed!"
+            echo "✅ Deployment completed successfully!"
+            
+            # Show status
+            echo "📊 Stack Status:"
+            docker stack ls
+            docker service ls
