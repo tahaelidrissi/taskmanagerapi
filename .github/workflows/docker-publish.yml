@@ -63,9 +63,10 @@ jobs:
             git remote -v
             
             echo "Pulling latest changes..."
+            git fetch origin
+            git checkout docker-swarm-deploy || git checkout -b docker-swarm-deploy origin/docker-swarm-deploy
             git pull origin docker-swarm-deploy || {
-              echo "Git pull failed, trying to fetch and reset..."
-              git fetch origin
+              echo "Git pull failed, trying to reset..."
               git reset --hard origin/docker-swarm-deploy
             }
             
