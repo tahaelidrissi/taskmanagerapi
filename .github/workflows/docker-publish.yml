@@ -35,9 +35,30 @@ jobs:
           timeout: 60s
           command_timeout: 10m
           script: |
-            echo "✅ SSH connection successful!"
-            echo "Current user: $(whoami)"
-            echo "Hostname: $(hostname)"
+            set -e
+            echo "🔧 Pulling code and deploying stack..."
             echo "Current directory: $(pwd)"
-            echo "Docker version: $(docker --version)"
-            echo "Docker info: $(docker info --format '{{.ServerVersion}}')"
+            echo "Available space: $(df -h . | tail -1)"
+            
+            if [ ! -d "taskmanagerapi" ]; then
+              echo "Cloning repository..."
+              git clone https://github.com/${{ github.repository }}.git taskmanagerapi
+            else
+              echo "Repository already exists, updating..."
+            fi
+            
+            cd taskmanagerapi
+            echo "Pulling latest changes..."
+            git pull origin docker-swarm-deploy
+            
+            echo "Logging into Docker Hub..."
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            
+            echo "Pulling Docker image..."
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            
+            echo "Deploying stack..."
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
+            
+            echo "✅ Deployment completed successfully!"
+            exit 0
