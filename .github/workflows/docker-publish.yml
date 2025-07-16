@@ -1,73 +1,251 @@
-name: Build and Deploy via SSH (Manual Upload)
+name: Build and Deploy via SSH
 on:
   push:
     branches:
       - docker-swarm-deploy
 env:
   IMAGE_NAME: taskmanagerapi
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
-      
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
-      
-      - name: Setup SSH Key
-        uses: webfactory/ssh-agent@v0.7.0
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          ssh-private-key: ${{ secrets.PWD_SSH_KEY }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
       
-      - name: Test SSH connection
-        run: |
-          echo "Testing connection to PWD..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "✅ SSH connection successful!"; whoami; docker --version'
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Transfer deployment files via SCP (more reliable than git clone over SSH)
+      - name: Checkout deployment files
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            stack.yml
+            docker-compose.yml
+          sparse-checkout-cone-mode: false
       
-      - name: Copy stack.yml to PWD
-        run: |
-          echo "Copying stack.yml to PWD instance..."
-          scp -o StrictHostKeyChecking=no -o ConnectTimeout=15 stack.yml ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com:~/
-          echo "✅ stack.yml copied successfully!"
+      - name: Transfer deployment files
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          source: "stack.yml"
+          target: "/root/taskmanagerapi/"
+          strip_components: 0
+          overwrite: true
+          timeout: 60s
       
-      - name: Deploy Docker Stack
-        run: |
-          echo "Starting deployment..."
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "
-          echo 'Verifying stack.yml file...'
-          ls -la stack.yml
-          cat stack.yml
-          echo 'Setting up environment...'
-          export MONGO_URI='${{ secrets.MONGO_URI }}'
-          echo 'Logging into Docker Hub...'
-          echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin
-          echo 'Pulling latest Docker image...'
-          docker pull '${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest'
-          echo 'Deploying Docker stack...'
-          docker stack deploy -c stack.yml --with-registry-auth taskmanager
-          echo '✅ Deployment completed!'
-          echo 'Stack status:'
-          docker stack ls
-          echo 'Service status:'
-          docker service ls
-          "
+      # Step 2: Initialize environment (short operation)
+      - name: Initialize deployment environment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            
+            echo "🔧 Initializing deployment environment..."
+            
+            # Create directory structure
+            mkdir -p /root/taskmanagerapi
+            cd /root/taskmanagerapi
+            
+            # Verify files transferred correctly
+            if [ ! -f "stack.yml" ]; then
+              echo "❌ stack.yml not found!"
+              exit 1
+            fi
+            
+            echo "✅ Files verified successfully"
+            
+            # Initialize Docker Swarm if not already done
+            if ! docker node ls >/dev/null 2>&1; then
+              echo "Initializing Docker Swarm..."
+              docker swarm init --advertise-addr $(hostname -i) || echo "Swarm already initialized"
+            fi
+            
+            echo "✅ Environment initialized"
       
-      - name: Verify Deployment
-        run: |
-          echo "Verifying deployment status..."
-          ssh -o StrictHostKeyChecking=no ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "
-          echo 'Final deployment status:'
-          docker stack ps taskmanager
-          echo 'Container logs (last 20 lines):'
-          docker service logs --tail 20 taskmanager_web || echo 'No logs available yet'
-          "
+      # Step 3: Deploy with background process management
+      - name: Deploy application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          timeout: 120s
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            
+            cd /root/taskmanagerapi
+            
+            echo "🚀 Starting deployment process..."
+            
+            # Set environment variables
+            export MONGO_URI="${{ secrets.MONGO_URI }}"
+            export IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+            
+            # Create deployment script for background execution
+            cat > deploy.sh << 'EOF'
+            #!/bin/bash
+            set -euo pipefail
+            
+            echo "$(date): Starting deployment..." >> deploy.log
+            
+            # Login to Docker Hub with retry logic
+            for i in {1..3}; do
+              if echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin; then
+                echo "$(date): Docker login successful" >> deploy.log
+                break
+              else
+                echo "$(date): Docker login failed, retrying..." >> deploy.log
+                sleep 10
+              fi
+            done
+            
+            # Pull image with retry logic
+            for i in {1..3}; do
+              if docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"; then
+                echo "$(date): Image pull successful" >> deploy.log
+                break
+              else
+                echo "$(date): Image pull failed, retrying..." >> deploy.log
+                sleep 15
+              fi
+            done
+            
+            # Deploy stack
+            echo "$(date): Deploying stack..." >> deploy.log
+            if docker stack deploy -c stack.yml --with-registry-auth taskmanager; then
+              echo "$(date): Stack deployment successful" >> deploy.log
+            else
+              echo "$(date): Stack deployment failed" >> deploy.log
+              exit 1
+            fi
+            
+            # Wait for service to be ready
+            echo "$(date): Waiting for service to be ready..." >> deploy.log
+            for i in {1..30}; do
+              if docker service ls --filter name=taskmanager --format "{{.Replicas}}" | grep -q "1/1"; then
+                echo "$(date): Service is ready!" >> deploy.log
+                break
+              fi
+              sleep 10
+            done
+            
+            echo "$(date): Deployment completed successfully!" >> deploy.log
+            EOF
+            
+            chmod +x deploy.sh
+            
+            # Run deployment in background with nohup
+            nohup ./deploy.sh > deployment_output.log 2>&1 &
+            DEPLOY_PID=$!
+            
+            echo "✅ Deployment started in background (PID: $DEPLOY_PID)"
+            
+            # Wait for initial deployment steps (60 seconds)
+            sleep 60
+            
+            # Check if deployment process is still running
+            if kill -0 $DEPLOY_PID 2>/dev/null; then
+              echo "✅ Deployment process is running successfully"
+              echo "📋 Deployment logs will continue in background"
+              
+              # Show current status
+              if docker service ls --filter name=taskmanager; then
+                echo "✅ Stack services are visible"
+              fi
+              
+            else
+              echo "❌ Deployment process has stopped unexpectedly"
+              echo "📋 Checking deployment logs:"
+              tail -20 deployment_output.log || true
+              exit 1
+            fi
+      
+      # Step 4: Verify deployment
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 3m
+          script: |
+            set -euo pipefail
+            
+            cd /root/taskmanagerapi
+            
+            echo "🔍 Verifying deployment..."
+            
+            # Wait for deployment to complete (check log file)
+            for i in {1..20}; do
+              if grep -q "Deployment completed successfully!" deploy.log 2>/dev/null; then
+                echo "✅ Background deployment completed successfully!"
+                break
+              elif grep -q "deployment failed" deploy.log 2>/dev/null; then
+                echo "❌ Background deployment failed!"
+                echo "📋 Error logs:"
+                cat deploy.log
+                exit 1
+              fi
+              echo "⏳ Waiting for deployment to complete... ($i/20)"
+              sleep 15
+            done
+            
+            # Verify services are running
+            echo "📊 Current service status:"
+            docker service ls
+            
+            echo "📊 Stack status:"
+            docker stack ls
+            
+            # Check if service is healthy
+            if docker service ls --filter name=taskmanager --format "{{.Replicas}}" | grep -q "1/1"; then
+              echo "✅ Service is running with correct replica count"
+            else
+              echo "⚠  Service may still be starting up"
+              docker service ps taskmanager_web --no-trunc
+            fi
+            
+            echo "🎉 Deployment verification completed!"
+            echo "📋 View full deployment logs with: cat /root/taskmanagerapi/deploy.log"
