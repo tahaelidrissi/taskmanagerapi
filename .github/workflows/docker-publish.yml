@@ -29,33 +29,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PWD_SSH_KEY }}
       
-      - name: Debug Connection
+      - name: Deploy to PWD (single command)
         run: |
-          echo "Testing with current PWD_USERNAME: ${{ secrets.PWD_USERNAME }}"
-          echo "Attempting connection..."
-          ssh -v -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com 'echo "Connected successfully!"' || echo "Connection failed - PWD instance likely expired"
-      
-      - name: Deploy to PWD
-        run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << 'EOF'
-          echo "🔧 Starting deployment..."
-          
-          # Simple download and deploy
-          rm -rf taskmanagerapi
-          curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip
-          unzip -q repo.zip
-          mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
-          cd taskmanagerapi
-          
-          # Quick verification
-          ls -la
-          cat stack.yml
-          
-          # Deploy
-          export MONGO_URI="${{ secrets.MONGO_URI }}"
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          docker pull "${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest"
-          docker stack deploy -c stack.yml --with-registry-auth taskmanager
-          
-          echo "✅ Deployment completed!"
-          EOF
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=60 -o ServerAliveInterval=30 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com "rm -rf taskmanagerapi && curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip && unzip -q repo.zip && mv taskmanagerapi-docker-swarm-deploy taskmanagerapi && cd taskmanagerapi && export MONGO_URI='${{ secrets.MONGO_URI }}' && echo '${{ secrets.DOCKERHUB_TOKEN }}' | docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin && docker pull '${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest' && docker stack deploy -c stack.yml --with-registry-auth taskmanager && echo 'Deployment completed!' && docker stack ls"
