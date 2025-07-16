@@ -43,32 +43,10 @@ jobs:
             # Check if git is available
             echo "Git version: $(git --version)"
             
-            if [ ! -d "taskmanagerapi" ]; then
-              echo "Cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git taskmanagerapi
-            else
-              echo "Repository already exists, updating..."
-            fi
-            
-            cd taskmanagerapi
-            echo "Current directory after cd: $(pwd)"
-            echo "Contents of directory: $(ls -la)"
-            
-            # Check git status
-            echo "Git status:"
-            git status
-            
-            # Check git remote
-            echo "Git remote:"
-            git remote -v
-            
-            echo "Pulling latest changes..."
-            git fetch origin
-            git checkout docker-swarm-deploy || git checkout -b docker-swarm-deploy origin/docker-swarm-deploy
-            git pull origin docker-swarm-deploy || {
-              echo "Git pull failed, trying to reset..."
-              git reset --hard origin/docker-swarm-deploy
-            }
+            # Clean approach - remove existing directory and clone fresh
+            echo "Removing existing directory and cloning fresh..."
+            rm -rf taskmanagerapi
+            git clone -b docker-swarm-deploy https://github.com/${{ github.repository }}.git taskmanagerapi
             
             echo "✅ Git operations completed!"
             
