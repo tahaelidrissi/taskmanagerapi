@@ -3,7 +3,7 @@ name: Build and Deploy to PWD
 on:
   push:
     branches:
-      - main
+      - docker-swarm-deploy
 
 env:
   IMAGE_NAME: tahaidrissi05/taskmanagerapi
