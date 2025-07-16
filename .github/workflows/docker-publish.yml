@@ -30,14 +30,31 @@ jobs:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
+          port: 8022
           script: |
+            set -e
             echo "🔧 Pulling code and deploying stack..."
+            echo "Current directory: $(pwd)"
+            echo "Available space: $(df -h . | tail -1)"
+            
             if [ ! -d "taskmanagerapi" ]; then
+              echo "Cloning repository..."
               git clone https://github.com/${{ github.repository }}.git taskmanagerapi
+            else
+              echo "Repository already exists, updating..."
             fi
+            
             cd taskmanagerapi
+            echo "Pulling latest changes..."
             git pull origin docker-swarm-deploy
+            
+            echo "Logging into Docker Hub..."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
+            
+            echo "Pulling Docker image..."
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            
+            echo "Deploying stack..."
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
+            
+            echo "✅ Deployment completed successfully!"
