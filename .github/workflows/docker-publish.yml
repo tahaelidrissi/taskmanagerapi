@@ -28,13 +28,16 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
-      - name: Debug secrets (TEMPORAIRE)
-        run: |
-          echo "PWD_IP = ${{ secrets.PWD_IP }}"
-          echo "DOCKERHUB_USERNAME = ${{ secrets.DOCKERHUB_USERNAME }}"
-          echo "Truncated SSH Key:"
-          echo "${{ secrets.PWD_SSH_KEY }}" | head -c 100
-        shell: bash
+      - name: Verify SSH connection
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PWD_IP }}
+          username: root
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          script: |
+            echo "SSH connection successful"
+            docker --version
 
       - name: Deploy to PWD via SSH
         uses: appleboy/ssh-action@v0.1.10
@@ -43,9 +46,14 @@ jobs:
           username: root
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
+          timeout: 30s
           script: |
-            echo "Image: ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
-            git clone https://github.com/tahaelidrissi/taskmanagerapi.git
+            echo "Deploying ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            if [ ! -d "taskmanagerapi" ]; then
+              git clone https://github.com/tahaelidrissi/taskmanagerapi.git
+            fi
             cd taskmanagerapi
+            git pull
+            echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
