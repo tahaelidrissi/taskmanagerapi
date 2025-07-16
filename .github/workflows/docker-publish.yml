@@ -29,18 +29,21 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
 
   deploy:
-    name: Deploy to PWD Swarm
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Connect and deploy to PWD
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.PWD_HOST }}
-          username: root
-          key: ${{ secrets.PWD_SSH_KEY }}
-          script: |
-            git clone https://github.com/${{ github.repository }}.git
-            cd $(basename ${{ github.repository }})
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout repository
+          uses: actions/checkout@v3
+
+        - name: Deploy to PWD Swarm
+          uses: appleboy/ssh-action@v0.1.10
+          with:
+            host: ${{ secrets.pwd_ip }}           # Exemple : ip172-18-0-14-abc@direct.labs.play-with-docker.com
+            username: root
+            key: ${{ secrets.pwd_ssh_key }}       # Clé privée SSH
+            port: 22
+            script: |
+              git clone https://github.com/${{ github.repository }}.git
+              cd $(basename ${{ github.repository }})
+              docker pull ${{ secrets.DOCKERHUB_USERNAME }}/taskmanagerapi:latest
+              docker stack deploy -c stack.yml --with-registry-auth taskmanager           
