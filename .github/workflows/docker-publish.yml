@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          ref: docker-swarm-deploy
       
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -24,112 +26,18 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Clone repository to PWD
-        uses: appleboy/ssh-action@v0.1.10
+      - name: Transfer files to PWD via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
-          timeout: 60s
-          command_timeout: 5m
-          script: |
-            set -euo pipefail
-            echo "🔧 Step 1: Cloning repository..."
-            
-            # Clean slate
-            rm -rf taskmanagerapi
-            
-            # Git clone with retry logic
-            for i in {1..3}; do
-              echo "Clone attempt $i/3..."
-              if timeout 180 git clone --depth 1 https://github.com/${{ github.repository }}.git taskmanagerapi; then
-                echo "✅ Repository cloned successfully"
-                break
-              else
-                echo "❌ Clone attempt $i failed, retrying in 10 seconds..."
-                rm -rf taskmanagerapi
-                sleep 10
-                if [ $i -eq 3 ]; then
-                  echo "❌ All clone attempts failed"
-                  exit 1
-                fi
-              fi
-            done
-            
-            # Verify clone
-            if [ ! -d "taskmanagerapi" ]; then
-              echo "❌ Repository directory not found"
-              exit 1
-            fi
-            
-            echo "✅ Clone step completed successfully"
+          source: "stack.yml"
+          target: "/root/"
+          timeout: 30s
       
-      - name: Checkout branch and verify files
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          timeout: 60s
-          command_timeout: 3m
-          script: |
-            set -euo pipefail
-            echo "🔧 Step 2: Checking out branch and verifying files..."
-            
-            cd taskmanagerapi
-            echo "Current directory: $(pwd)"
-            
-            # Check available branches
-            echo "Available branches:"
-            git branch -a
-            
-            # Fetch and checkout docker-swarm-deploy branch
-            echo "Fetching docker-swarm-deploy branch..."
-            for i in {1..3}; do
-              if git fetch origin docker-swarm-deploy; then
-                echo "✅ Branch fetched successfully"
-                break
-              else
-                echo "❌ Fetch attempt $i failed, retrying..."
-                sleep 5
-                if [ $i -eq 3 ]; then
-                  echo "❌ Failed to fetch branch"
-                  exit 1
-                fi
-              fi
-            done
-            
-            # Checkout branch
-            echo "Checking out docker-swarm-deploy branch..."
-            git checkout docker-swarm-deploy
-            
-            # Verify we're on correct branch
-            current_branch=$(git branch --show-current)
-            echo "Current branch: $current_branch"
-            
-            if [ "$current_branch" != "docker-swarm-deploy" ]; then
-              echo "❌ Failed to checkout correct branch"
-              exit 1
-            fi
-            
-            # Verify stack.yml exists
-            echo "Verifying deployment files..."
-            if [ -f "stack.yml" ]; then
-              echo "✅ stack.yml found!"
-              echo "Stack file contents:"
-              cat stack.yml
-            else
-              echo "❌ stack.yml not found in docker-swarm-deploy branch!"
-              echo "Available files:"
-              ls -la
-              exit 1
-            fi
-            
-            echo "✅ Branch checkout and verification completed"
-      
-      - name: Deploy stack to Docker Swarm
+      - name: Deploy to Docker Swarm
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
@@ -140,11 +48,20 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
-            echo "🔧 Step 3: Deploying to Docker Swarm..."
+            echo "🔧 Starting Docker Swarm deployment..."
             
-            cd taskmanagerapi
+            # Verify files transferred
+            if [ ! -f "stack.yml" ]; then
+              echo "❌ stack.yml not found!"
+              ls -la
+              exit 1
+            fi
             
-            # Verify Docker Swarm is initialized
+            echo "✅ stack.yml found!"
+            echo "Stack configuration:"
+            cat stack.yml
+            
+            # Initialize Docker Swarm if needed
             if ! docker info | grep -q "Swarm: active"; then
               echo "Initializing Docker Swarm..."
               docker swarm init
@@ -152,7 +69,7 @@ jobs:
               echo "✅ Docker Swarm is already active"
             fi
             
-            # Set environment variables for deployment
+            # Set environment variables
             export MONGO_URI="${{ secrets.MONGO_URI }}"
             echo "Environment variables configured"
             
@@ -197,7 +114,7 @@ jobs:
             echo "Service list:"
             docker service ls
             echo ""
-            echo "Service logs (last 10 lines):"
-            docker service logs --tail 10 taskmanager_web || true
+            echo "Service status:"
+            docker stack ps taskmanager
             
             echo "✅ Deployment completed successfully!"
