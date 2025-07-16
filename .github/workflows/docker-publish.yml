@@ -24,76 +24,56 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
       
-      - name: Deploy to PWD using SSH
+      - name: Download code to PWD
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
-          debug: true
-          timeout: 300s
-          command_timeout: 10m
+          timeout: 60s
+          command_timeout: 3m
           script: |
-            set -e
-            echo "🔧 Pulling code and deploying stack..."
-            echo "Current directory: $(pwd)"
-            echo "Available space: $(df -h . | tail -1)"
-            
-            # Connection test
-            echo "Testing connection..."
-            date
-            
-            # Clean approach - remove existing directory and download fresh
-            echo "Removing existing directory and downloading fresh..."
+            echo "🔧 Downloading code..."
             rm -rf taskmanagerapi
-            
-            echo "Downloading repository archive..."
             curl -L -o repo.zip https://github.com/${{ github.repository }}/archive/refs/heads/docker-swarm-deploy.zip
-            echo "Extracting repository..."
             unzip -q repo.zip
-            
-            echo "Renaming extracted directory..."
             mv taskmanagerapi-docker-swarm-deploy taskmanagerapi
-            
-            echo "Cleanup zip file..."
             rm repo.zip
-            
-            echo "Repository downloaded successfully!"
-            echo "Checking if directory exists..."
-            ls -la | grep taskmanagerapi
-            
-            echo "Entering repository directory..."
+            echo "✅ Code downloaded successfully!"
+      
+      - name: Verify and deploy stack
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          timeout: 60s
+          command_timeout: 5m
+          script: |
+            echo "🔧 Starting deployment..."
             cd taskmanagerapi
-            echo "Current directory after cd: $(pwd)"
-            echo "Contents of directory: $(ls -la)"
             
-            echo "Verifying stack.yml exists..."
             if [ -f "stack.yml" ]; then
               echo "✅ stack.yml found!"
-              echo "Contents of stack.yml:"
               cat stack.yml
             else
               echo "❌ stack.yml not found!"
-              echo "Available files:"
               ls -la
               exit 1
             fi
             
-            echo "✅ Repository setup completed!"
-            
-            # Set environment variables for Docker stack
+            # Set environment variables
             export MONGO_URI="${{ secrets.MONGO_URI }}"
-            echo "Environment variables set for deployment"
             
-            echo "Logging into Docker Hub..."
+            # Login to Docker Hub
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            echo "Pulling Docker image..."
+            # Pull image
             docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
             
-            echo "Deploying stack..."
+            # Deploy stack
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
             
             echo "✅ Deployment completed successfully!"
-            exit 0
