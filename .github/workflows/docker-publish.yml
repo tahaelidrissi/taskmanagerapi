@@ -70,7 +70,6 @@ jobs:
               echo "📂 Project contents after clone:"
               pwd
               ls -la
-              git checkout pwd-deployment-appleboy || exit 1
             fi
 
             echo "📄 Checking stack.yml..."
