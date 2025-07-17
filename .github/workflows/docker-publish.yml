@@ -78,6 +78,9 @@ jobs:
             sleep 15
 
             echo "📦 Checking Docker status..."
+
+            echo "🐳 Attempting docker info now..."
+            
             docker info || { echo "❌ Docker is not ready"; exit 1; }
 
             echo "🐳 Logging into Docker Hub..."
