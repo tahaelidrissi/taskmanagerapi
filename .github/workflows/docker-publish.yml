@@ -63,8 +63,10 @@ jobs:
               git checkout pwd-deployment-appleboy 
               echo "checkout daz"
             else
-              git clone --depth 1 https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
+              git clone https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
               cd taskmanagerapi
+              git fetch origin pwd-deployment-appleboy
+              git checkout pwd-deployment-appleboy || exit 1
               echo "📂 Project contents after clone:"
               pwd
               ls -la
