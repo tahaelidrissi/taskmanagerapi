@@ -75,7 +75,6 @@ jobs:
             [ -f stack.yml ] || { echo "❌ stack.yml not found"; ls -la; exit 1; }
 
             echo "🕒 Waiting for Docker to be ready..."
-            sleep 15
 
             echo "📦 Checking Docker status..."
             docker info || { echo "❌ Docker is not ready"; exit 1; }
