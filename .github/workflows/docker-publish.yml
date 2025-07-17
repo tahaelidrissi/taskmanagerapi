@@ -65,7 +65,6 @@ jobs:
             else
               git clone https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
               cd taskmanagerapi
-              git fetch origin pwd-deployment-appleboy
               git checkout pwd-deployment-appleboy || exit 1
               echo "📂 Project contents after clone:"
               pwd
