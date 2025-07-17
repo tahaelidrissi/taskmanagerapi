@@ -56,12 +56,18 @@ jobs:
             echo "📁 Cloning or updating repo..."
             if [ -d taskmanagerapi ]; then
               cd taskmanagerapi
+              echo "📂 Project contents after clone:"
+              pwd
+              ls -la
               git reset --hard
               git clean -fd
               git pull origin pwd-deployment-appleboy || exit 1
             else
               git clone --depth 1 https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
               cd taskmanagerapi
+              echo "📂 Project contents after clone:"
+              pwd
+              ls -la
               git checkout pwd-deployment-appleboy || exit 1
             fi
 
