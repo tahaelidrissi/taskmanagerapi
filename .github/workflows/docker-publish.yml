@@ -69,6 +69,8 @@ jobs:
               pwd
               ls -la
               git checkout pwd-deployment-appleboy || exit 1
+              sleep 5
+
             fi
 
             echo "📄 Checking stack.yml..."
