@@ -38,45 +38,45 @@ jobs:
           timeout: 120s
           command_timeout: 15m
           script: |
-                set -e
+            set -e
 
-                echo "🔍 System info on PWD:"
-                uname -a
-                echo "🔧 Current directory: $(pwd)"
-                echo "💾 Disk usage:"
-                df -h .
+            echo "🔍 System info on PWD:"
+            uname -a
+            echo "🔧 Current directory: $(pwd)"
+            echo "💾 Disk usage:"
+            df -h .
 
-                echo "🔍 Checking Git availability..."
-                if ! command -v git > /dev/null; then
-                  echo "❌ Git not installed"; exit 1;
-                else
-                  echo "✅ Git: $(git --version)"
-                fi
+            echo "📦 Checking Docker status..."
+            docker info || { echo "❌ Docker is not ready"; exit 1; }
 
-                echo "📁 Cloning or updating repo..."
-                if [ -d taskmanagerapi ]; then
-                  cd taskmanagerapi
-                  git reset --hard
-                  git clean -fd
-                  git pull origin pwd-deployment-appleboy || exit 1
-                else
-                  git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
-                  cd taskmanagerapi
-                fi
+            echo "🔍 Checking Git availability..."
+            if ! command -v git > /dev/null; then
+              echo "❌ Git not installed"; exit 1;
+            else
+              echo "✅ Git: $(git --version)"
+            fi
 
-                echo "📄 Checking stack.yml..."
-                [ -f stack.yml ] || { echo "❌ stack.yml not found"; ls -la; exit 1; }
+            echo "📁 Cloning or updating repo..."
+            if [ -d taskmanagerapi ]; then
+              cd taskmanagerapi
+              git reset --hard
+              git clean -fd
+              git pull origin pwd-deployment-appleboy || exit 1
+            else
+              git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
+              cd taskmanagerapi
+            fi
 
-                echo "📦 Checking Docker status..."
-                docker info || { echo "❌ Docker is not ready"; exit 1; }
+            echo "📄 Checking stack.yml..."
+            [ -f stack.yml ] || { echo "❌ stack.yml not found"; ls -la; exit 1; }
 
-                echo "🐳 Logging into Docker Hub..."
-                echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin || exit 1
+            echo "🐳 Logging into Docker Hub..."
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin || exit 1
 
-                echo "📥 Pulling image..."
-                docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest" || exit 1
+            echo "📥 Pulling image..."
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest" || exit 1
 
-                echo "🚀 Deploying stack..."
-                docker stack deploy -c stack.yml --with-registry-auth taskmanager || exit 1
+            echo "🚀 Deploying stack..."
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager || exit 1
 
-                echo "✅ Deployment finished!"
+            echo "✅ Deployment finished!"
