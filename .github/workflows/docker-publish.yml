@@ -59,9 +59,9 @@ jobs:
               echo "📂 Project contents after clone:"
               echo "aa"
               pwd
-              ls -la
               git checkout pwd-deployment-appleboy 
               echo "checkout daz"
+              ls -la
             else
               git clone https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
               cd taskmanagerapi
