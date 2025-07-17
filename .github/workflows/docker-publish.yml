@@ -35,7 +35,6 @@ jobs:
           timeout: 120s
           command_timeout: 15m
           script: |
-            set -e
             echo "🔧 Pulling code and deploying stack..."
             echo "Current directory: $(pwd)"
             echo "Available space: $(df -h . | tail -1)"
@@ -58,9 +57,9 @@ jobs:
             echo "Current directory after cd: $(pwd)"
             echo "Contents of directory: $(ls -la)"
             
-            echo "Checking out docker-swarm-deploy branch..."
-            git fetch origin docker-swarm-deploy
-            git checkout docker-swarm-deploy
+            echo "Checking out pwd-deployment-appleboy branch..."
+            git fetch origin pwd-deployment-appleboy
+            git checkout pwd-deployment-appleboy
             
             echo "Verifying stack.yml exists..."
             if [ -f "stack.yml" ]; then
