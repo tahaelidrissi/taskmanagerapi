@@ -32,25 +32,66 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.PWD_SSH_KEY }}
           REMOTE_HOST: direct.labs.play-with-docker.com
           REMOTE_USER: ${{ secrets.PWD_USERNAME }}
-          SOURCE: "stack.yml"
-          TARGET: "/root/"
           SCRIPT_AFTER: |
-            echo "✅ Files cloned successfully!"
+            echo "🔧 Starting repository clone..."
+            
+            # Check current directory
             echo "Current directory: $(pwd)"
-            echo "Files available:"
-            ls -la
             
-            echo "🔧 Starting Docker Swarm deployment..."
+            # Remove existing directory if it exists
+            rm -rf taskmanagerapi
             
-            # Verify stack.yml exists
-            if [ -f "stack.yml" ]; then
-              echo "✅ stack.yml found!"
-              echo "Stack configuration:"
-              cat stack.yml
+            # Clone repository
+            echo "Cloning repository..."
+            git clone https://github.com/${{ github.repository }}.git taskmanagerapi
+            
+            if [ -d "taskmanagerapi" ]; then
+              echo "✅ Repository cloned successfully!"
             else
-              echo "❌ stack.yml not found!"
+              echo "❌ Clone failed!"
               exit 1
             fi
+            
+            # Check if we're in root and cd to project
+            echo "Checking current location..."
+            if [ "$(pwd)" = "/root" ]; then
+              echo "✅ We are in root directory"
+            else
+              echo "Current directory: $(pwd)"
+            fi
+            
+            echo "Changing to project directory..."
+            cd taskmanagerapi
+            
+            echo "✅ Successfully changed to project directory: $(pwd)"
+            
+            # Show available branches
+            echo "Available branches:"
+            git branch -a
+            
+            # Checkout to docker-swarm-deploy branch
+            echo "Checking out to docker-swarm-deploy branch..."
+            git fetch origin docker-swarm-deploy
+            git checkout docker-swarm-deploy
+            
+            # Verify we're on the right branch
+            current_branch=$(git branch --show-current)
+            echo "✅ Current branch: $current_branch"
+            
+            # Look for stack.yml file
+            echo "Looking for stack.yml file..."
+            if [ -f "stack.yml" ]; then
+              echo "✅ Found stack.yml file!"
+              echo "Stack.yml contents:"
+              cat stack.yml
+            else
+              echo "❌ stack.yml file not found!"
+              echo "Available files in current directory:"
+              ls -la
+              exit 1
+            fi
+            
+            echo "🔧 Starting Docker Swarm deployment..."
             
             # Initialize Docker Swarm
             docker swarm init || echo "✅ Docker Swarm already active"
