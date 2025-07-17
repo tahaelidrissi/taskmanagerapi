@@ -60,6 +60,8 @@ jobs:
               echo "aa"
               pwd
               ls -la
+              git checkout pwd-deployment-appleboy 
+              echo "checkout daz"
               git reset --hard
               git clean -fd
               git pull origin pwd-deployment-appleboy || exit 1
