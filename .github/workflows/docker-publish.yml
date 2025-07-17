@@ -76,11 +76,11 @@ jobs:
 
             echo "🕒 Waiting for Docker to be ready..."
             for i in {1..5}; do
-                echo "⏳ Waiting $((i*5)) seconds before checking Docker..."
-                sleep 5
-              done
+              echo "⏳ Waiting $((i*5)) seconds before checking Docker..."
+              sleep 5
+            done
 
-              echo "✅ Finished waiting. Docker check starts now."
+            echo "✅ Finished waiting. Docker check starts now."
 
 
             echo "📦 Checking Docker status..."
