@@ -42,6 +42,7 @@ jobs:
 
             echo "🔍 System info on PWD:"
             uname -a
+
             echo "🔧 Current directory: $(pwd)"
             echo "💾 Disk usage:"
             df -h .
@@ -53,40 +54,22 @@ jobs:
               echo "✅ Git: $(git --version)"
             fi
 
-            echo "📁 Cloning or updating repo..."
-            if [ -d taskmanagerapi ]; then
-              cd taskmanagerapi
-              echo "📂 Project contents after clone:"
-              echo "aa"
-              pwd
-              git checkout pwd-deployment-appleboy 
-              echo "checkout daz"
-              ls -la
-            else
-              git clone https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
-              cd taskmanagerapi
-              git checkout pwd-deployment-appleboy || exit 1
-              echo "📂 Project contents after clone:"
-              pwd
-              ls -la
-            fi
+            echo "📁 Cloning repo..."
+            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
+            cd taskmanagerapi
+            echo "📂 Project contents:"
+            ls -la
 
             echo "📄 Checking stack.yml..."
-            [ -f stack.yml ] || { echo "❌ stack.yml not found"; ls -la; exit 1; }
+            [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
 
             echo "🕒 Waiting for Docker to be ready..."
             for i in {1..5}; do
-              echo "⏳ Waiting $((i*5)) seconds before checking Docker..."
+              echo "⏳ Waiting $((i*5)) seconds..."
               sleep 5
             done
 
-            echo "✅ Finished waiting. Docker check starts now."
-
-
-            echo "📦 Checking Docker status..."
-
-            echo "🐳 Attempting docker info now..."
-
+            echo "🐳 Attempting docker info..."
             docker info || { echo "❌ Docker is not ready"; exit 1; }
 
             echo "🐳 Logging into Docker Hub..."
