@@ -35,6 +35,7 @@ jobs:
           timeout: 120s
           command_timeout: 15m
           script: |
+            set -e
             echo "🔧 Pulling code and deploying stack..."
             echo "Current directory: $(pwd)"
             echo "Available space: $(df -h . | tail -1)"
