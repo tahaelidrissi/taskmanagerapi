@@ -57,6 +57,7 @@ jobs:
             if [ -d taskmanagerapi ]; then
               cd taskmanagerapi
               echo "📂 Project contents after clone:"
+              echo "aa"
               pwd
               ls -la
               git reset --hard
