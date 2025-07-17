@@ -36,6 +36,7 @@ jobs:
           command_timeout: 15m
           script: |
               set -e
+
               echo "🔧 Pulling code and deploying stack..."
               echo "Current directory: $(pwd)"
               echo "Available space: $(df -h . | tail -1)"
@@ -48,41 +49,52 @@ jobs:
                 exit 1
               fi
 
-              echo "Removing existing directory and cloning fresh..."
-              rm -rf taskmanagerapi
-
-              echo "Cloning repository with timeout..."
-              if timeout 60 git clone https://github.com/tahaelidrissi/taskmanagerapi.git taskmanagerapi; then
-                echo "✅ Full clone succeeded!"
-              elif timeout 60 git clone --depth 1 https://github.com/tahaelidrissi/taskmanagerapi.git taskmanagerapi; then
-                echo "⚠️ Shallow clone succeeded!"
+              echo "📁 Checking if taskmanagerapi already exists..."
+              if [ -d "taskmanagerapi" ]; then
+                echo "📁 Directory taskmanagerapi already exists. Skipping clone."
               else
-                echo "❌ Git clone failed"
-                exit 1
+                echo "📥 Cloning repository with timeout..."
+                if timeout 60 git clone https://github.com/tahaelidrissi/taskmanagerapi.git taskmanagerapi; then
+                  echo "✅ Full clone succeeded!"
+                elif timeout 60 git clone --depth 1 https://github.com/tahaelidrissi/taskmanagerapi.git taskmanagerapi; then
+                  echo "⚠️ Shallow clone succeeded!"
+                else
+                  echo "❌ Git clone failed"
+                  exit 1
+                fi
               fi
 
               cd taskmanagerapi
-              echo "Current directory after cd: $(pwd)"
-              echo "Contents of directory: $(ls -la)"
+              echo "📍 Current directory: $(pwd)"
+              echo "📦 Contents:"
+              ls -la
 
-              echo "Checking out pwd-deployment-appleboy branch..."
-              git fetch origin pwd-deployment-appleboy
-              git checkout pwd-deployment-appleboy
+              echo "🔀 Checking out branch pwd-deployment-appleboy..."
+              git fetch origin pwd-deployment-appleboy || exit 1
+              git checkout pwd-deployment-appleboy || exit 1
 
-              echo "Verifying stack.yml exists..."
+              echo "📄 Verifying stack.yml exists..."
               if [ -f "stack.yml" ]; then
-                echo "✅ stack.yml found!"
+                echo "✅ stack.yml found"
                 cat stack.yml
               else
-                echo "❌ stack.yml not found!"
+                echo "❌ stack.yml not found"
                 ls -la
                 exit 1
               fi
 
-              echo "✅ Git operations completed!"
+              echo "⚙️ Git operations completed!"
               export MONGO_URI="***"
-              echo "***" | docker login -u "***" --password-stdin
-              docker pull "***/$IMAGE_NAME:latest"
-              docker stack deploy -c stack.yml --with-registry-auth taskmanager
+
+              echo "🔐 Logging into Docker Hub..."
+              echo "***" | docker login -u "***" --password-stdin || exit 1
+
+              echo "📦 Pulling Docker image..."
+              docker pull "***/$IMAGE_NAME:latest" || exit 1
+
+              echo "🚀 Deploying stack to Docker Swarm..."
+              docker stack deploy -c stack.yml --with-registry-auth taskmanager || exit 1
+
               echo "✅ Deployment completed successfully!"
               exit 0
+
