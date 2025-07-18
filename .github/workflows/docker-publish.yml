@@ -44,6 +44,7 @@ jobs:
           command_timeout: 15m
           envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
+            set -ex
             bash -l -c '
               set -ex
 
