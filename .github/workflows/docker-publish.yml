@@ -93,9 +93,6 @@ jobs:
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
-            echo "🚮 Leaving swarm if exists (cleanup)"
-            docker swarm leave --force || true
-
             echo "🐳 Initializing Docker Swarm from scratch"
             docker swarm init --advertise-addr "$MY_IP"
 
