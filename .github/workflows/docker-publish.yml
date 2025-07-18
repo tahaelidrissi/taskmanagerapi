@@ -70,16 +70,6 @@ jobs:
 
             echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
-            [ -z "$DOCKERHUB_TOKEN" ] && echo "❌ DOCKERHUB_TOKEN is empty!" && exit 1
-            echo "🔑 Token length: ${#DOCKERHUB_TOKEN}"
-
-            echo "🐳 Docker login"
-            if ! timeout 15s bash -c 'printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin'; then
-              echo "❌ Docker login failed or timed out"
-              exit 1
-            fi
-            echo "✅ Docker login succeeded"
-
 
 
       - name: 🚀 SSH - Deploy stack on PWD
