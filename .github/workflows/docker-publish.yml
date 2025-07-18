@@ -95,6 +95,7 @@ jobs:
             
             echo "🐳 Initializing Swarm (will skip if already active)"
             docker swarm init --advertise-addr "$MY_IP" 2>/dev/null || echo "Swarm already initialized or error occurred"
+            sleep 10
             
             echo "📥 Pulling Docker image"
             docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
