@@ -74,6 +74,8 @@ jobs:
 
             echo "🐳 Docker login"
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            docker info | grep Username || { echo "❌ Docker login failed"; exit 1; }
+
 
 
       - name: 🚀 SSH - Deploy stack on PWD
