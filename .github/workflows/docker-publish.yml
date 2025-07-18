@@ -35,6 +35,8 @@ jobs:
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
+          timeout: 120s
+          command_timeout: 15m
           script: |
             set -ex
             echo "🔍 System info:"
