@@ -27,27 +27,7 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
-      - name: 🔁 SSH - Clone repo on PWD
-        uses: appleboy/ssh-action@v0.1.10
-        continue-on-error: true
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 120s
-          command_timeout: 15m
-          script: |
-            set -ex
-            echo "🔍 System info:"
-            uname -a
-            df -h .
-            echo "📁 Cloning repository"
-            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
-            ls -la
-
-      - name: ⚙️ SSH - Prepare .env + Docker Login
+      - name: 🧱 SSH - Clone + .env + Deploy (tout en un, shell login)
         uses: appleboy/ssh-action@v0.1.10
         env:
           IMAGE_NAME: taskmanagerapi
@@ -60,42 +40,37 @@ jobs:
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
+          timeout: 120s
+          command_timeout: 15m
           envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
-            set -ex
-            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-
-            echo "📄 Checking stack.yml"
-            [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
-
-            echo "📝 Creating .env"
-            echo "MONGODB_URI=$MONGO_URI" > .env
-
-
-      - name: Simple deployment
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 60s
-          command_timeout: 15m
-          script: |
             bash -l -c '
-              echo "📂 Moving into repo"
-              cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+              set -ex
 
-              echo "📥 Building Docker image"
-              docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
+              echo "🔍 System info:"
+              uname -a
+              df -h .
 
-              echo "🚀 Deploying Docker Stack"
+              echo "📁 Cloning repository"
+              git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
+              cd taskmanagerapi
+
+              echo "📄 Checking stack.yml"
+              [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
+
+              echo "📝 Creating .env"
+              echo "MONGO_URI=$MONGO_URI" > .env
+
+              echo "🔐 Docker login"
+              echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+              echo "📥 Pulling Docker image"
+              docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
+
+              echo "🚀 Deploying Docker stack"
               docker stack deploy -c stack.yml --with-registry-auth taskmanager
 
-              echo "📋 Listing running services"
+              echo "📋 Listing services"
               docker service ls
             '
+
