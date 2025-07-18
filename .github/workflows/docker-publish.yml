@@ -85,16 +85,24 @@ jobs:
           debug: true
           script: |
             set -ex
-            cd taskmanagerapi
 
-            echo "📥 Pulling image"
+            echo "🛰️ Current IP"
+            hostname -i
+
+            echo "📂 Moving into repo"
+            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+
+            echo "🐳 Initializing Docker Swarm if needed"
+            docker swarm init --advertise-addr $(hostname -i) || echo "Swarm already initialized"
+
+            echo "✅ Swarm status:"
+            docker info | grep "Swarm:"
+
+            echo "📥 Pulling Docker image"
             docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
 
-            echo "🐳 Initialize swarm"
-            docker info | grep "Swarm: active" || docker swarm init --advertise-addr $(hostname -i)
-
-            echo "🚀 Deploying stack"
+            echo "🚀 Deploying Docker Stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
 
-            echo "📋 Services status"
+            echo "📋 Listing running services"
             docker service ls
