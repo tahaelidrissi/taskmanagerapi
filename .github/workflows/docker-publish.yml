@@ -27,7 +27,7 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
-      - name: Deploy to PWD using SSH
+      - name: 🔁 SSH - Clone repo on PWD
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
@@ -35,47 +35,59 @@ jobs:
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
-          timeout: 120s
-          command_timeout: 15m
-          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
             set -ex
-
-            echo "🔍 System info on PWD:"
+            echo "🔍 System info:"
             uname -a
-
-            echo "📦 Disk available:"
             df -h .
-
-            echo "📁 Cloning repo."
-            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
-            cd taskmanagerapi
+            echo "📁 Cloning repository"
+            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
             ls -la
 
-            echo "📄 Checking stack.yml."
+      - name: ⚙️ SSH - Prepare .env + Docker Login
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          debug: true
+          envs: IMAGE_NAME,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,MONGO_URI
+          script: |
+            set -ex
+            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+
+            echo "📄 Checking stack.yml"
             [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
 
-            echo "📝 Creating .env file."
+            echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
+            cat .env
 
-
-            echo "🐳 Waiting for Docker..."
-            for i in {1..5}; do
-              docker info && break
-              echo "⏳ Docker not ready yet, retrying..."
-              sleep 5
-            done
-
-            echo "🐳 Logging into Docker Hub."
+            echo "🐳 Docker login"
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-            echo "📥 Pulling image: $IMAGE_NAME"
+      - name: 🚀 SSH - Deploy stack on PWD
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          debug: true
+          envs: IMAGE_NAME,DOCKERHUB_USERNAME
+          script: |
+            set -ex
+            cd taskmanagerapi
+
+            echo "📥 Pulling image"
             docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
 
-            echo "🐳 Initializing swarm (if not already)."
+            echo "🐳 Initialize swarm"
             docker info | grep "Swarm: active" || docker swarm init --advertise-addr $(hostname -i)
 
-            echo "🚀 Deploying stack."
+            echo "🚀 Deploying stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
 
-            echo "✅ Deployment finished!"
+            echo "📋 Services status"
+            docker service ls
