@@ -37,7 +37,7 @@ jobs:
           debug: true
           timeout: 120s
           command_timeout: 15m
-          envs: IMAGE_NAME
+          envs: IMAGE_NAME,MONGO_URI
           script: |
             set -ex
 
@@ -56,7 +56,8 @@ jobs:
             [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
 
             echo "📝 Creating .env file."
-            echo "MONGODB_URI=${{ secrets.MONGO_URI }}" > .env
+            echo "MONGODB_URI=$MONGO_URI" > .env
+
 
             echo "🐳 Waiting for Docker..."
             for i in {1..5}; do
