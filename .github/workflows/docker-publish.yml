@@ -89,8 +89,8 @@ jobs:
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
-            echo "📥 Pulling Docker image"
-            docker pull "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest"
+            echo "📥 Building Docker image"
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
 
             echo "🚀 Deploying Docker Stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
