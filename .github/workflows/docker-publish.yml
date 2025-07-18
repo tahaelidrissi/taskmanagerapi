@@ -72,43 +72,45 @@ jobs:
             echo "MONGODB_URI=$MONGO_URI" > .env
 
 
-      - name: 🚀 SSH - Deploy stack on PWD
+      - name: Check Docker Swarm Status
         uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: tahaidrissi05
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
-          debug: true
           script: |
-            set -ex
-
             echo "🛰️ Current IP"
             MY_IP=$(hostname -i)
             echo "Current IP: $MY_IP"
-
-            echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-
             echo "🐳 Checking if Swarm is active"
+            docker info --format '{{.Swarm.LocalNodeState}}'
+
+      - name: Initialize Docker Swarm if needed
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          script: |
+            cd taskmanagerapi
             SWARM_STATE=$(docker info --format '{{.Swarm.LocalNodeState}}')
             if [ "$SWARM_STATE" != "active" ]; then
-              echo "⚙️ Swarm not active, initializing..."
-              docker swarm init --advertise-addr "$MY_IP" || echo "⚠️ Swarm init failed or already part of another swarm"
-            else
-              echo "✅ Swarm already active"
+              MY_IP=$(hostname -i)
+              docker swarm init --advertise-addr "$MY_IP"
             fi
 
-            echo "📥 Pulling Docker image"
+      - name: Pull and Deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: direct.labs.play-with-docker.com
+          username: ${{ secrets.PWD_USERNAME }}
+          key: ${{ secrets.PWD_SSH_KEY }}
+          port: 22
+          script: |
+            cd taskmanagerapi
             docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
-
-            echo "🚀 Deploying Docker Stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
-
-            echo "📋 Listing running services"
             docker service ls
-
-
