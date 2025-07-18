@@ -37,7 +37,7 @@ jobs:
           debug: true
           timeout: 120s
           command_timeout: 15m
-          envs: IMAGE_NAME,MONGO_URI
+          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
             set -ex
 
@@ -67,10 +67,10 @@ jobs:
             done
 
             echo "🐳 Logging into Docker Hub."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
             echo "📥 Pulling image: $IMAGE_NAME"
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
+            docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
 
             echo "🐳 Initializing swarm (if not already)."
             docker info | grep "Swarm: active" || docker swarm init --advertise-addr $(hostname -i)
