@@ -72,15 +72,18 @@ jobs:
             echo "MONGODB_URI=$MONGO_URI" > .env
 
 
-      - name: Deploy to server
+      - name: Simple deployment
         uses: appleboy/ssh-action@v0.1.10
+        env:
+          IMAGE_NAME: taskmanagerapi
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
-          debug: true  # Activer le debug
-          timeout: 60s  # Augmenter le timeout
+          debug: true
+          timeout: 60s
           command_timeout: 15m
           script: |
             echo "🛰️ Current IP"
@@ -90,40 +93,14 @@ jobs:
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
             
-            echo "🐳 Checking if Swarm is active"
-            # Utiliser une approche plus robuste
-            if docker info >/dev/null 2>&1; then
-              SWARM_STATE=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo "inactive")
-              echo "Swarm state: $SWARM_STATE"
-            else
-              echo "❌ Docker daemon not accessible"
-              exit 1
-            fi
-
-      - name: Initialize Docker Swarm if needed
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          script: |
-            cd taskmanagerapi
-            SWARM_STATE=$(docker info --format '{{.Swarm.LocalNodeState}}')
-            if [ "$SWARM_STATE" != "active" ]; then
-              MY_IP=$(hostname -i)
-              docker swarm init --advertise-addr "$MY_IP"
-            fi
-
-      - name: Pull and Deploy
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          script: |
-            cd taskmanagerapi
-            docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
+            echo "🐳 Initializing Swarm (will skip if already active)"
+            docker swarm init --advertise-addr "$MY_IP" 2>/dev/null || echo "Swarm already initialized or error occurred"
+            
+            echo "📥 Pulling Docker image"
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+            
+            echo "🚀 Deploying Docker Stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
+            
+            echo "📋 Listing running services"
             docker service ls
