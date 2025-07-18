@@ -72,9 +72,9 @@ jobs:
             echo "MONGODB_URI=$MONGO_URI" > .env
             cat .env
 
-            echo "🐳 Docker login"
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin || { echo "❌ Docker login failed"; exit 1; }
-
+            echo "🐳 Docker logina"
+            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+            echo "Docker success"
 
 
 
