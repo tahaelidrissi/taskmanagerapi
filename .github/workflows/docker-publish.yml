@@ -52,7 +52,12 @@ jobs:
               uname -a
               df -h .
 
-              echo "📁 Cloning repository"
+              if [ -d "taskmanagerapi" ]; then
+                echo "🧹 Deleting existing repo"
+                rm -rf taskmanagerapi
+              fi
+
+              echo "📥 Cloning repo fresh"
               git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
               cd taskmanagerapi
 
