@@ -74,8 +74,12 @@ jobs:
             echo "🔑 Token length: ${#DOCKERHUB_TOKEN}"
 
             echo "🐳 Docker login"
-            timeout 15s bash -c 'printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin'
+            if ! timeout 15s bash -c 'printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin'; then
+              echo "❌ Docker login failed or timed out"
+              exit 1
+            fi
             echo "✅ Docker login succeeded"
+
 
 
       - name: 🚀 SSH - Deploy stack on PWD
