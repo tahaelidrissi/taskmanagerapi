@@ -92,11 +92,12 @@ jobs:
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
-            echo "🐳 Initializing Docker Swarm if needed"
-            docker swarm init --advertise-addr $(hostname -i) || echo "Swarm already initialized"
-
-            echo "✅ Swarm status:"
-            docker info | grep "Swarm:"
+            echo "🐳 Initializing Docker Swarm if not active"
+            if ! docker info | grep -q "Swarm: active"; then
+              docker swarm init --advertise-addr $(hostname -i)
+            else
+              echo "✅ Swarm already active"
+            fi
 
             echo "📥 Pulling Docker image"
             docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
