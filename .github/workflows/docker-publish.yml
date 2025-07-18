@@ -86,22 +86,18 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            echo "🛰️ Current IP"
-            MY_IP=$(hostname -i)
-            echo "Current IP: $MY_IP"
-            
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-            
+
             echo "🐳 Initializing Swarm (will skip if already active)"
-            docker swarm init --advertise-addr "$MY_IP" 2>/dev/null || echo "Swarm already initialized or error occurred"
-            sleep 10
-            
+            docker info | grep -q 'Swarm: active' || docker swarm init || echo "⚠️ Swarm already active or error occurred"
+            sleep 5
+
             echo "📥 Pulling Docker image"
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
-            
+            docker pull "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest"
+
             echo "🚀 Deploying Docker Stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
-            
+
             echo "📋 Listing running services"
             docker service ls
