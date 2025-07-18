@@ -70,10 +70,12 @@ jobs:
 
             echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
-            cat .env
 
             echo "🐳 Docker login"
-            echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin || { echo "❌ Docker login failed"; exit 1; }
+            printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin || { echo "❌ Docker login failed"; exit 1; }
+
+
+
 
       - name: 🚀 SSH - Deploy stack on PWD
         uses: appleboy/ssh-action@v0.1.10
