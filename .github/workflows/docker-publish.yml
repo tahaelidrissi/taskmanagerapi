@@ -69,7 +69,7 @@ jobs:
             [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
 
             echo "📝 Creating .env"
-            echo "MONGO_URI=$MONGO_URI" > .env
+            echo "MONGODB_URI=$MONGO_URI" > .env
 
 
       - name: Simple deployment
@@ -86,10 +86,14 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            IP=$(ip addr show eth1 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
-            echo "Using IP: $IP"
-            echo "🐳 docker swarm init --advertise-addr $IP"
-            
+            echo "📂 Moving into repo"
+            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
-            echo "✅ Checking swarm status..."
-            docker info | grep 'Swarm'
+            echo "📥 Pulling Docker image"
+            docker pull "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest"
+
+            echo "🚀 Deploying Docker Stack"
+            docker stack deploy -c stack.yml --with-registry-auth taskmanager
+
+            echo "📋 Listing running services"
+            docker service ls
