@@ -76,14 +76,13 @@ jobs:
         uses: appleboy/ssh-action@v0.1.10
         env:
           IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_USERNAME: tahaidrissi05
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
-          envs: IMAGE_NAME,DOCKERHUB_USERNAME
           script: |
             set -ex
             cd taskmanagerapi
