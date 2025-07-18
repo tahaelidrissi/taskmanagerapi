@@ -39,49 +39,42 @@ jobs:
           command_timeout: 15m
           envs: IMAGE_NAME
           script: |
-            set -ex  # stop on error + show each command
+            set -ex
 
-            echo "🔍 [1] System info on PWD"
+            echo "🔍 System info on PWD:"
             uname -a
 
-            echo "💽 [2] Disk usage"
+            echo "📦 Disk available:"
             df -h .
 
-            echo "📁 [3] Cloning repo"
+            echo "📁 Cloning repo."
             git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git || exit 1
+            cd taskmanagerapi
             ls -la
-            cd taskmanagerapi || { echo "❌ cd taskmanagerapi failed"; exit 1; }
 
-            echo "📄 [4] Checking stack.yml"
+            echo "📄 Checking stack.yml."
             [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
 
-            echo "📝 [5] Creating .env"
+            echo "📝 Creating .env file."
             echo "MONGODB_URI=${{ secrets.MONGO_URI }}" > .env
-            echo "[DEBUG] .env content:"
-            cat .env || { echo "❌ .env not created properly"; exit 1; }
 
-            echo "🐳 [6] Docker readiness check"
+            echo "🐳 Waiting for Docker..."
             for i in {1..5}; do
               docker info && break
               echo "⏳ Docker not ready yet, retrying..."
               sleep 5
             done
 
-            echo "🔐 [7] Docker login"
+            echo "🐳 Logging into Docker Hub."
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            docker info | grep Username || { echo "❌ Docker login failed"; exit 1; }
 
-            echo "📥 [8] Pulling image"
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest" || { echo "❌ Image pull failed"; exit 1; }
+            echo "📥 Pulling image: $IMAGE_NAME"
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest"
 
-            echo "🔄 [9] Swarm init"
+            echo "🐳 Initializing swarm (if not already)."
             docker info | grep "Swarm: active" || docker swarm init --advertise-addr $(hostname -i)
-            docker info | grep "Swarm: active" || { echo "❌ Swarm not active"; exit 1; }
 
-            echo "🚀 [10] Deploying stack"
+            echo "🚀 Deploying stack."
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
 
-            echo "🔎 [11] Services running?"
-            docker service ls || { echo "❌ No services running"; exit 1; }
-
-            echo "✅ [12] Deployment complete"
+            echo "✅ Deployment finished!"
