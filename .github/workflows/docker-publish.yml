@@ -72,20 +72,33 @@ jobs:
             echo "MONGODB_URI=$MONGO_URI" > .env
 
 
-      - name: Check Docker Swarm Status
+      - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
+          debug: true  # Activer le debug
+          timeout: 60s  # Augmenter le timeout
+          command_timeout: 15m
           script: |
             echo "🛰️ Current IP"
             MY_IP=$(hostname -i)
             echo "Current IP: $MY_IP"
+            
+            echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+            
             echo "🐳 Checking if Swarm is active"
-            docker info --format '{{.Swarm.LocalNodeState}}'
+            # Utiliser une approche plus robuste
+            if docker info >/dev/null 2>&1; then
+              SWARM_STATE=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo "inactive")
+              echo "Swarm state: $SWARM_STATE"
+            else
+              echo "❌ Docker daemon not accessible"
+              exit 1
+            fi
 
       - name: Initialize Docker Swarm if needed
         uses: appleboy/ssh-action@v0.1.10
