@@ -86,9 +86,16 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            echo "👤 User: $(whoami)"
-            echo "📁 Current directory: $(pwd)"
-            echo "🐳 Docker path: $(which docker)"
-            echo "🎯 Docker version test"
-            docker version || echo "❌ Docker NOT available"
+            bash -l -c '
+              echo "📂 Moving into repo"
+              cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
+              echo "📥 Building Docker image"
+              docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
+
+              echo "🚀 Deploying Docker Stack"
+              docker stack deploy -c stack.yml --with-registry-auth taskmanager
+
+              echo "📋 Listing running services"
+              docker service ls
+            '
