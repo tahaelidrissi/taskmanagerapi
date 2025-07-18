@@ -49,13 +49,18 @@ jobs:
 
       - name: ⚙️ SSH - Prepare .env + Docker Login
         uses: appleboy/ssh-action@v0.1.10
+        env:
+          IMAGE_NAME: taskmanagerapi
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
-          envs: IMAGE_NAME,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN,MONGO_URI
+          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
             set -ex
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
@@ -69,6 +74,7 @@ jobs:
 
             echo "🐳 Docker login"
             echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
 
       - name: 🚀 SSH - Deploy stack on PWD
         uses: appleboy/ssh-action@v0.1.10
