@@ -74,7 +74,7 @@ jobs:
             echo "🔑 Token length: ${#DOCKERHUB_TOKEN}"
 
             echo "🐳 Docker login"
-            printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin || { echo "❌ Docker login failed"; exit 1; }
+            timeout 15s bash -c 'printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin'
             echo "✅ Docker login succeeded"
 
 
