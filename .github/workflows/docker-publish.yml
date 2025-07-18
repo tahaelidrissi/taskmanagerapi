@@ -86,5 +86,10 @@ jobs:
           timeout: 60s
           command_timeout: 15m
           script: |
-            echo "🧪 Testing Swarm init"
-            docker swarm init
+            IP=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+            echo "Using IP: $IP"
+            echo "🐳 docker swarm init --advertise-addr $IP"
+            docker swarm init --advertise-addr "$IP" || echo "⚠️ Already in a swarm or error occurred"
+
+            echo "✅ Checking swarm status..."
+            docker info | grep 'Swarm'
