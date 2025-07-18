@@ -29,6 +29,7 @@ jobs:
 
       - name: 🔁 SSH - Clone repo on PWD
         uses: appleboy/ssh-action@v0.1.10
+        continue-on-error: true
         with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
