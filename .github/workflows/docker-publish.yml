@@ -70,6 +70,8 @@ jobs:
 
             echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
+            [ -z "$DOCKERHUB_TOKEN" ] && echo "❌ DOCKERHUB_TOKEN is empty!" && exit 1
+            echo "🔑 Token length: ${#DOCKERHUB_TOKEN}"
 
             echo "🐳 Docker login"
             printf "%s" "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin || { echo "❌ Docker login failed"; exit 1; }
