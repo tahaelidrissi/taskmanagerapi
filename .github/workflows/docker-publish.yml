@@ -62,7 +62,7 @@ jobs:
           debug: true
           envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
           script: |
-            set -ex
+            set -x
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
             echo "📄 Checking stack.yml"
