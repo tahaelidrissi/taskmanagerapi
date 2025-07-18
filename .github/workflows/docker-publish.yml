@@ -27,51 +27,26 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
-      - name: 🧱 SSH - Clone + .env + Deploy (tout en un, shell login)
-        uses: appleboy/ssh-action@v0.1.10
+      - name: Setup SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PWD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: Run remote commands on PWD
         env:
-          IMAGE_NAME: taskmanagerapi
-          MONGO_URI: ${{ secrets.MONGO_URI }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 120s
-          command_timeout: 15m
-          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
-          script: |
+          SSH_USER: ip172-18-0-53-d1t52ss69qi000em63p0
+          SSH_HOST: direct.labs.play-with-docker.com
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            "$SSH_USER@$SSH_HOST" <<'EOF'
+
             set -ex
-            bash -l -c '
-              set -ex
+            echo "✅ Connected to PWD!"
+            docker --version
 
-              echo "🔍 System info:"
-              uname -a
-              df -h .
-
-              echo "📁 Cloning repository"
-              git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
-              cd taskmanagerapi
-
-              echo "📄 Checking stack.yml"
-              [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
-
-              echo "📝 Creating .env"
-              echo "MONGO_URI=$MONGO_URI" > .env
-
-              echo "🔐 Docker login"
-              echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-              echo "📥 Pulling Docker image"
-              docker pull "$DOCKERHUB_USERNAME/$IMAGE_NAME:latest"
-
-              echo "🚀 Deploying Docker stack"
-              docker stack deploy -c stack.yml --with-registry-auth taskmanager
-
-              echo "📋 Listing services"
-              docker service ls
-            '
-
+            # Tes commandes ici :
+            # git clone ...
+            # docker stack deploy ...
+            # etc.
+          EOF
