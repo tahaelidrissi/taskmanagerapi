@@ -93,8 +93,8 @@ jobs:
             echo "📂 Moving into repo"
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
 
-            echo "🐳 Initializing Docker Swarm from scratch"
-            docker swarm init --advertise-addr "$MY_IP"
+            echo "🐳 Initializing Docker Swarm (if needed)"
+            docker swarm init --advertise-addr "$MY_IP" || echo "Swarm already initialized or failed safely"
 
             echo "✅ Swarm status:"
             docker info | grep "Swarm:"
@@ -107,3 +107,4 @@ jobs:
 
             echo "📋 Listing running services"
             docker service ls
+
