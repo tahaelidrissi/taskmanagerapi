@@ -3,7 +3,7 @@ name: Build and Deploy via SSH
 on:
   push:
     branches:
-      - pwd-deployment-appleboy
+      - pwd
 
 env:
   IMAGE_NAME: taskmanagerapi
@@ -70,30 +70,9 @@ jobs:
 
             echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
-
-
-      - name: Simple deployment
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Deploy to swarm
+        uses: sagebind/docker-swarm-deploy-action@v2
         with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 60s
-          command_timeout: 15m
-          script: |
-            echo "📂 Moving into repo"
-            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-
-            echo "📥 Pulling Docker image"
-            docker pull "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest"
-
-            echo "🚀 Deploying Docker Stack"
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
-
-            echo "📋 Listing running services"
-            docker service ls
+          remote_host: "ip172-18-0-44-d1v2vla91nsg00d86650.direct.labs.play-with-docker.com"
+          ssh_private_key: ${{ secrets. PWD_SSH_KEY }}
+          args: stack deploy --compose-file docker-compose.yml coolapp
