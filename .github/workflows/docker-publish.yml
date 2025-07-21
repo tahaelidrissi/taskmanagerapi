@@ -21,49 +21,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
-
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
-
-      - name: 🔁 SSH - Clone repo on PWD
-        uses: appleboy/ssh-action@v0.1.10
-        continue-on-error: true
+      - name: Deploy to swarm
+        uses: sagebind/docker-swarm-deploy-action@v2
         with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 120s
-          command_timeout: 15m
-          script: |
-            set -ex
-            echo "🔍 System info:"
-            uname -a
-            df -h .
-            echo "📁 Cloning repository"
-            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
-            ls -la
-
-      - name: 🚀 Deploy to PWD using SSH
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 120s
-          command_timeout: 15m
-          envs: MONGO_URI
-          script: |
-            set -ex
-            ls
-            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-            ls
-            echo "📝 Creating .env"
-            echo "MONGODB_URI=$MONGO_URI" > .env
-
-
+          remote_host: "ip172-18-0-44-d1v2vla91nsg00d86650.direct.labs.play-with-docker.com"
+          ssh_private_key: ${{ secrets.PWD_SSH_KEY }}
+          args: stack deploy --compose-file docker-compose.yml coolapp
