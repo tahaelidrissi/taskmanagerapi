@@ -72,24 +72,10 @@ jobs:
             echo "MONGODB_URI=$MONGO_URI" > .env
 
 
-      - name: Simple deployment
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 60s
-          command_timeout: 15m
-          script: |
-            IP=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
-            echo "Using IP: $IP"
-            echo "🐳 docker swarm init --advertise-addr $IP"
-            docker swarm init --advertise-addr "$IP" || echo "⚠️ Already in a swarm or error occurred"
 
-            echo "✅ Checking swarm status..."
-            docker info | grep 'Swarm'
+      - name: Deploy to swarm
+        uses: sagebind/docker-swarm-deploy-action@v2
+        with:
+          remote_host: "ip172-18-0-44-d1v2vla91nsg00d86650.direct.labs.play-with-docker.com"
+          ssh_private_key: ${{ secrets. PWD_SSH_KEY }}
+          args: stack deploy --compose-file stack.yml coolapp
