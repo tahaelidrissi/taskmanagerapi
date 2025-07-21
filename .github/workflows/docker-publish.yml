@@ -3,7 +3,7 @@ name: Build and Deploy via SSH
 on:
   push:
     branches:
-      - pwd-deployment-appleboy
+      - pwd
 
 env:
   IMAGE_NAME: taskmanagerapi
@@ -11,6 +11,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -27,73 +28,52 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
+      - name: SSH Setup
+        run: |
+          echo "🔐 Setting up SSH key"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PWD_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n  StrictHostKeyChecking no\n" > ~/.ssh/config
+
       - name: 🔁 SSH - Clone repo on PWD
-        uses: appleboy/ssh-action@v0.1.10
-        continue-on-error: true
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 120s
-          command_timeout: 15m
-          script: |
+        run: |
+          echo "📁 Cloning repo on PWD"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << 'EOF'
             set -ex
-            echo "🔍 System info:"
-            uname -a
-            df -h .
-            echo "📁 Cloning repository"
+            rm -rf taskmanagerapi || true
             git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
-            ls -la
+            ls -la taskmanagerapi
+          EOF
 
-      - name: ⚙️ SSH - Prepare .env + Docker Login
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          MONGO_URI: ${{ secrets.MONGO_URI }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
-          script: |
+      - name: ⚙️ SSH - Prepare .env and Docker login
+        run: |
+          echo "⚙️ Setting up env file and logging in Docker"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << EOF
             set -ex
-            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+            cd taskmanagerapi
 
-            echo "📄 Checking stack.yml"
-            [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
+            echo "📄 Creating .env"
+            echo "MONGODB_URI=${{ secrets.MONGO_URI }}" > .env
+            cat .env
 
-            echo "📝 Creating .env"
-            echo "MONGODB_URI=$MONGO_URI" > .env
+            echo "🔐 Docker login"
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          EOF
 
-
-      - name: Simple deployment
-        uses: appleboy/ssh-action@v0.1.10
-        env:
-          IMAGE_NAME: taskmanagerapi
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        with:
-          host: direct.labs.play-with-docker.com
-          username: ${{ secrets.PWD_USERNAME }}
-          key: ${{ secrets.PWD_SSH_KEY }}
-          port: 22
-          debug: true
-          timeout: 60s
-          command_timeout: 15m
-          script: |
-            echo "📂 Moving into repo"
-            cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
+      - name: 🚀 SSH - Deploy Docker stack
+        run: |
+          echo "🚀 Starting deployment on PWD"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << EOF
+            set -ex
+            cd taskmanagerapi
 
             echo "📥 Pulling Docker image"
-            docker pull "${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest"
+            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
 
-            echo "🚀 Deploying Docker Stack"
+            echo "📦 Deploying with docker stack"
             docker stack deploy -c stack.yml --with-registry-auth taskmanager
 
             echo "📋 Listing running services"
             docker service ls
+          EOF
