@@ -20,10 +20,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: 📄 Create .env file
+        run: echo "MONGO_URI=${{ secrets.MONGO_URI }}" > .env
 
       - name: Deploy to swarm
         uses: sagebind/docker-swarm-deploy-action@v2
         with:
           remote_host: "ip172-18-0-44-d1v2vla91nsg00d86650.direct.labs.play-with-docker.com"
           ssh_private_key: ${{ secrets.PWD_SSH_KEY }}
-          args: stack deploy --compose-file docker-compose.yml coolapp
+          args: stack deploy --compose-file stack.yml coolapp
