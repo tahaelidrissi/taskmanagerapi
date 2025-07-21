@@ -3,7 +3,7 @@ name: Build and Deploy via SSH
 on:
   push:
     branches:
-      - pwd-deployment-appleboy
+      - swarmdeploy
 
 env:
   IMAGE_NAME: taskmanagerapi
