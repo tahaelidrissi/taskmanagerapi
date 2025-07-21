@@ -50,24 +50,20 @@ jobs:
       - name: ⚙️ SSH - Prepare .env + Docker Login
         uses: appleboy/ssh-action@v0.1.10
         env:
-          IMAGE_NAME: taskmanagerapi
           MONGO_URI: ${{ secrets.MONGO_URI }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        with:
           host: direct.labs.play-with-docker.com
           username: ${{ secrets.PWD_USERNAME }}
           key: ${{ secrets.PWD_SSH_KEY }}
           port: 22
           debug: true
-          envs: IMAGE_NAME,MONGO_URI,DOCKERHUB_USERNAME,DOCKERHUB_TOKEN
+          timeout: 120s
+          command_timeout: 15m
+          envs: MONGO_URI
           script: |
             set -ex
+            ls
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
-
-            echo "📄 Checking stack.yml"
-            [ -f stack.yml ] || { echo "❌ stack.yml not found"; exit 1; }
-
+            ls
             echo "📝 Creating .env"
             echo "MONGODB_URI=$MONGO_URI" > .env
 
