@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: 🔍 Test SSH & Docker access on PWD
+      - name: 🚀 Deploy to Docker Swarm on PWD
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: direct.labs.play-with-docker.com
@@ -21,7 +21,21 @@ jobs:
           port: 22
           script: |
             set -ex
-            uname -a || true
-            docker --version || true
-            docker info || true
-            echo "✅ Done"
+
+            echo "🔍 System info"
+            uname -a
+            docker --version
+            docker info
+
+            echo "⚙️ Init Swarm if needed"
+            docker swarm init || echo "Already initialized"
+
+            cd taskmanagerapi
+
+            echo "📝 Creating .env"
+            echo "MONGO_URI=${MONGO_URI}" > .env
+
+            echo "🚀 Deploying stack"
+            docker stack deploy -c stack.yml taskmanager
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
