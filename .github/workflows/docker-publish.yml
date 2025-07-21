@@ -3,7 +3,7 @@ name: Build and Deploy via SSH
 on:
   push:
     branches:
-      - pwd
+      - ssh
 
 env:
   IMAGE_NAME: taskmanagerapi
@@ -16,64 +16,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build Docker image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest .
-
-      - name: Push Docker image
-        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME:latest
 
       - name: SSH Setup
         run: |
-          echo "🔐 Setting up SSH key"
-          mkdir -p ~/.ssh
-          echo "${{ secrets.PWD_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo -e "Host *\n  StrictHostKeyChecking no\n" > ~/.ssh/config
+          ssh-keygen -t ed25519 -P "" -f ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+    
+      - name: Trusted Host
+        run: |
+          ssh-keyscan ip172-18-0-26-d1v1dei91nsg00d8636g.direct.labs.play-with-docker.com >> ~/.ssh/known_hosts
 
       - name: 🔁 SSH - Clone repo on PWD
         run: |
           echo "📁 Cloning repo on PWD"
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << 'EOF'
-            set -ex
-            rm -rf taskmanagerapi || true
-            git clone --branch pwd-deployment-appleboy https://github.com/tahaelidrissi/taskmanagerapi.git
-            ls -la taskmanagerapi
-          EOF
+          ssh -i ~/.ssh/id_ed25519 ip172-18-0-26-d1v1dei91nsg00d8636g.direct.labs.play-with-docker.com "mkdir testssh"
+          
 
-      - name: ⚙️ SSH - Prepare .env and Docker login
-        run: |
-          echo "⚙️ Setting up env file and logging in Docker"
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << EOF
-            set -ex
-            cd taskmanagerapi
-
-            echo "📄 Creating .env"
-            echo "MONGODB_URI=${{ secrets.MONGO_URI }}" > .env
-            cat .env
-
-            echo "🔐 Docker login"
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-          EOF
-
-      - name: 🚀 SSH - Deploy Docker stack
-        run: |
-          echo "🚀 Starting deployment on PWD"
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p 22 ${{ secrets.PWD_USERNAME }}@direct.labs.play-with-docker.com << EOF
-            set -ex
-            cd taskmanagerapi
-
-            echo "📥 Pulling Docker image"
-            docker pull "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
-
-            echo "📦 Deploying with docker stack"
-            docker stack deploy -c stack.yml --with-registry-auth taskmanager
-
-            echo "📋 Listing running services"
-            docker service ls
-          EOF
+      
