@@ -62,7 +62,7 @@ jobs:
             set -ex
             cd taskmanagerapi || { echo "❌ Repo folder not found"; exit 1; }
             echo "📝 Creating .env"
-            echo "MONGODB_URI=$MONGO_URI" > .env
+            echo "MONGO_URI=$MONGO_URI" > .env
 
   deploy_to_swarm:
     needs: build_and_prepare
