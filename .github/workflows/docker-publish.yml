@@ -74,6 +74,6 @@ jobs:
       - name: 🚀 Deploy to Docker Swarm
         uses: sagebind/docker-swarm-deploy-action@v2
         with:
-          remote_host: "ip172-18-0-14-d1vmg0q91nsg009b6h90.direct.labs.play-with-docker.com"
+          remote_host: ${{ secrets.REMOTE_HOST }}
           ssh_private_key: ${{ secrets.PWD_SSH_KEY }}
           args: stack deploy --compose-file stack.yml coolapp
