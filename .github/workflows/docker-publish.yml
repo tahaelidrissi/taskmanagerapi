@@ -3,7 +3,7 @@ name: Build and Deploy to Swarm
 on:
   push:
     branches:
-      - swarmdeploy
+      - main
 
 env:
   IMAGE_NAME: taskmanagerapi
