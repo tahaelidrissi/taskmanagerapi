@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  web:
+    image: tahaidrissi05/taskmanagerapi:latest
+    ports:
+      - "80:8000"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
