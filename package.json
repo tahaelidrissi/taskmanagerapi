@@ -1,0 +1,26 @@
+{
+  "name": "taskmanagerapi",
+  "version": "1.0.0",
+  "description": "A full-stack REST API for managing tasks, built with FastAPI, MongoDB Atlas, and deployed serverlessly on Vercel. Designed to demonstrate modern Python backend development, async database integration, and cloud deployment.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tahaelidrissi/taskmanagerapi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tahaelidrissi/taskmanagerapi/issues"
+  },
+  "homepage": "https://github.com/tahaelidrissi/taskmanagerapi#readme",
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-offline": "^9.2.0",
+    "serverless-python-requirements": "^6.1.2"
+  }
+}

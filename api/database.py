@@ -25,14 +25,18 @@ async def get_database():
         if not mongo_uri:
             raise RuntimeError("MONGO_URI n'est pas défini dans les variables d'environnement")
         _client = AsyncIOMotorClient(mongo_uri)
-        _db = _client.get_default_database()
+        _db = _client["taskmanager"]
         _loop_id = id(current_loop)
         _is_initialized = False  # reset init on new loop
+        print("MONGO_URI lu :", repr(mongo_uri))
+
+
         print(f"Création nouveau client MongoDB pour event loop {_loop_id}")
 
     if not _is_initialized:
         await init_beanie(database=_db, document_models=[Task])
         _is_initialized = True
-        print("✅ Beanie initialisé")
+        print("Beanie initialisé avec succès")
+
 
     return _db

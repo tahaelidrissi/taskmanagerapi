@@ -1,0 +1,22 @@
+service: fastapi-app
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: eu-west-1
+
+functions:
+  app:
+    handler: handler.handler
+    events:
+      - httpApi: '*'
+
+plugins:
+  - serverless-python-requirements
+  - serverless-dotenv-plugin  
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+  dotenv:
+    path: .env  

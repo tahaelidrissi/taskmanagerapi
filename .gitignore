@@ -1,3 +1,11 @@
 env/
 .env
-api/__pycache__/
+api/__pycache__
+node_modules
+.venv/
+.requirements/
+__pycache__/
+event.json
+.pytest_cache/
+test/__pycache__/
+source
