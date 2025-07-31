@@ -1,13 +1,22 @@
-version: "3"
+version: "3.9"
 
 services:
   web:
     image: tahaidrissi05/taskmanagerapi:latest
-    ports:
-      - "80:8000"
     environment:
       - MONGO_URI=${MONGO_URI}
     deploy:
       replicas: 1
       restart_policy:
         condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.admin.rule=Host(`admin.tahaidrissi.digital`)"
+        - "traefik.http.routers.admin.entrypoints=web"
+        - "traefik.http.services.admin.loadbalancer.server.port=8000"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
