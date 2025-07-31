@@ -1,11 +1,32 @@
 version: "3"
 
 services:
+  traefik:
+    image: traefik:v2.11
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "80:80"       # HTTP
+      - "8080:8080"   # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik.yml:/etc/traefik/traefik.yml
+    networks:
+      - traefik
+
   app:
     image: tahaidrissi05/taskmanager_api:latest
-    ports:
-      - "8000:8000"              
     env_file:
-      - .env                             
-    restart: unless-stopped                
+      - .env
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.taskmanager.rule=Host(`admin.tahaidrissi.digital`)"
+      - "traefik.http.routers.taskmanager.entrypoints=web"
+      - "traefik.http.services.taskmanager.loadbalancer.server.port=8000"
+    networks:
+      - traefik
 
+networks:
+  traefik:
+    driver: bridge
