@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.taskmanager.rule=Host(`admin.tahaidrissi.digital`)"
+      - "traefik.http.routers.taskmanager.rule=Host(`localhost`)"
       - "traefik.http.routers.taskmanager.entrypoints=web"
       - "traefik.http.services.taskmanager.loadbalancer.server.port=8000"
     networks:

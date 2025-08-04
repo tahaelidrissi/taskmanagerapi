@@ -12,11 +12,12 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.admin.rule=Host(`admin.tahaidrissi.digital`)"
-        - "traefik.http.routers.admin.entrypoints=web"
+        - "traefik.http.routers.admin.entrypoints=websecure"
+        - "traefik.http.routers.admin.tls.certresolver=default"
         - "traefik.http.services.admin.loadbalancer.server.port=8000"
     networks:
-      - traefik
+      - public  # <- si ton réseau Traefik s'appelle bien 'public'
 
 networks:
-  traefik:
+  public:
     external: true
