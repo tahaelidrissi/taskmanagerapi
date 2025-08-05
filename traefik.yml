@@ -2,10 +2,22 @@ entryPoints:
   web:
     address: ":80"
 
+  websecure:
+    address: ":443"
+
 api:
   dashboard: true
-  insecure: true
+  insecure: false
 
 providers:
   docker:
+    endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+
+certificatesResolvers:
+  default:
+    acme:
+      email: tahaidrissi0525@gmail.com
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web

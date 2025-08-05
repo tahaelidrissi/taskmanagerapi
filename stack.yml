@@ -1,22 +1,19 @@
 version: "3.9"
 
 services:
-  web:
+  api:
     image: tahaidrissi05/taskmanagerapi:latest
-    environment:
-      - MONGO_URI=${MONGO_URI}
+    networks:
+      - public
     deploy:
       replicas: 1
-      restart_policy:
-        condition: on-failure
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.admin.rule=Host(`admin.tahaidrissi.digital`)"
-        - "traefik.http.routers.admin.entrypoints=websecure"
-        - "traefik.http.routers.admin.tls.certresolver=default"
-        - "traefik.http.services.admin.loadbalancer.server.port=8000"
-    networks:
-      - public  # <- si ton réseau Traefik s'appelle bien 'public'
+        - "traefik.docker.network=public"
+        - "traefik.http.routers.api.rule=Host(`api.tahaidrissi.digital`)"
+        - "traefik.http.routers.api.entrypoints=websecure"
+        - "traefik.http.routers.api.tls.certresolver=default"
+        - "traefik.http.services.api.loadbalancer.server.port=8000"
 
 networks:
   public:

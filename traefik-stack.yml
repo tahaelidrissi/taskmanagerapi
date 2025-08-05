@@ -1,61 +1,50 @@
-version: "3.7"
+version: "3.9"
 
 services:
   traefik:
-    image: traefik:v2.0
+    image: traefik:v2.11
     command:
-      - "--api=true"
-      #- "--api.insecure=true"
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--providers.docker.swarmMode=true"
-      - "--providers.docker.network=http"
+      - "--providers.docker.network=public"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.default.acme.email=tahaidrissi0525@gmail.com"
-      - "--certificatesresolvers.default.acme.storage=/acme.json"
+      - "--certificatesresolvers.default.acme.storage=/etc/traefik/acme.json"
       - "--certificatesresolvers.default.acme.tlschallenge=true"
     ports:
       - 80:80
       - 443:443
       - 8080:8080
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-          - node.hostname == node1
-      replicas: 1
-      update_config:
-        parallelism: 2
-        delay: 10s
-      restart_policy:
-        condition: on-failure
-      labels:
-        # Dashboard
-        - "traefik.enable=true"
-        - "traefik.docker.network=public"
-        - "traefik.http.routers.traefik.rule=Host(`traefik.tahaidrissi.digital`)"
-        - "traefik.http.routers.traefik.service=api@internal"
-        - "traefik.http.routers.traefik.tls.certresolver=default"
-        - "traefik.http.routers.traefik.entrypoints=websecure"
-        - "traefik.http.routers.traefik.middlewares=authtraefik"
-        - "traefik.http.middlewares.authtraefik.basicauth.users=monuser:$$2y$$05$$9erOxFmsPtGEAeHJBYy01.N.LUt4BYlYQVKKl8IrOrQwjXSyMCvHS"
-        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-
-        # global redirect to https
-        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
-        - "traefik.http.routers.http-catchall.entrypoints=web"
-        - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
-
-        # middleware redirect
-        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./acme.json:/etc/traefik/acme.json
     networks:
       - public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # Expose dashboard securely
+        - "traefik.enable=true"
+        - "traefik.docker.network=public"
+        - "traefik.http.routers.traefik.rule=Host(`traefik.tahaidrissi.digital`)"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.routers.traefik.tls.certresolver=default"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.middlewares=authtraefik"
+        - "traefik.http.middlewares.authtraefik.basicauth.users=admin:{SHA}OwBKxtimAmgfXuNYfJJIVWeeIdk="
+
+
+        # Redirect HTTP → HTTPS globally
+        - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
 networks:
   public:
