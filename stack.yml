@@ -10,7 +10,7 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.docker.network=public"
-        - "traefik.http.routers.api.rule=Host(`api.tahaidrissi.digital`)"
+        - "traefik.http.routers.api.rule=Host(`admin.tahaidrissi.digital`)"
         - "traefik.http.routers.api.entrypoints=websecure"
         - "traefik.http.routers.api.tls.certresolver=default"
         - "traefik.http.services.api.loadbalancer.server.port=8000"
