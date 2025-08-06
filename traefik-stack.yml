@@ -11,9 +11,9 @@ services:
       - "--providers.docker.network=public"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.default.acme.email=tahaidrissi0525@gmail.com"
-      - "--certificatesresolvers.default.acme.storage=/etc/traefik/acme.json"
-      - "--certificatesresolvers.default.acme.tlschallenge=true"
+      #- "--certificatesresolvers.default.acme.email=tahaidrissi0525@gmail.com"
+      #- "--certificatesresolvers.default.acme.storage=/etc/traefik/acme.json"
+      #- "--certificatesresolvers.default.acme.tlschallenge=true"
     ports:
       - 80:80
       - 443:443
@@ -33,8 +33,8 @@ services:
         - "traefik.enable=true"
         - "traefik.docker.network=public"
         - "traefik.http.routers.traefik.rule=Host(`traefik.tahaidrissi.digital`)"
-        - "traefik.http.routers.traefik.entrypoints=websecure"
-        - "traefik.http.routers.traefik.tls.certresolver=default"
+        - "traefik.http.routers.traefik.entrypoints=web"
+       # - "traefik.http.routers.traefik.tls.certresolver=default"
         - "traefik.http.routers.traefik.service=api@internal"
         - "traefik.http.routers.traefik.middlewares=authtraefik"
         - "traefik.http.middlewares.authtraefik.basicauth.users=admin:{SHA}OwBKxtimAmgfXuNYfJJIVWeeIdk="
